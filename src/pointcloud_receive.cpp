@@ -618,12 +618,24 @@ void pointcloud_receive::pointcloud_callback(
                     switch (rangeNum)
                     {
                         default:
-                        case 0:	pointCloudDisplay->setPointColor_fast(i, 1, colorNum*(1-darkness)+darkness, 0+darkness); break;//G(0->255)
-                        case 1:	pointCloudDisplay->setPointColor_fast(i, (1 - colorNum)*(1-darkness)+darkness, 1, 0+darkness); break;//R(255->0)
-                        case 2:	pointCloudDisplay->setPointColor_fast(i, 0+darkness, 1, colorNum*(1-darkness)+darkness); break;//B(0->255)
-                        case 3:	pointCloudDisplay->setPointColor_fast(i, 0+darkness, (1 - colorNum)*(1-darkness)+darkness, 1); break;//G(255->0)
-                        case 4:	pointCloudDisplay->setPointColor_fast(i, colorNum*(1-darkness)+darkness, 0+darkness, 1); break;//R(0->255)
-                        case 5: pointCloudDisplay->setPointColor_fast(i, 0+darkness, 0+darkness, 1); break;
+                        case 0:
+                            pointCloudDisplay->setPointColor_fast(i, 1, colorNum*(1-darkness)+darkness, 0+darkness);
+                            break;//G(0->255)
+                        case 1:
+                            pointCloudDisplay->setPointColor_fast(i, (1 - colorNum)*(1-darkness)+darkness, 1, 0+darkness);
+                            break;//R(255->0)
+                        case 2:
+                            pointCloudDisplay->setPointColor_fast(i, 0+darkness, 1, colorNum*(1-darkness)+darkness);
+                            break;//B(0->255)
+                        case 3:
+                            pointCloudDisplay->setPointColor_fast(i, 0+darkness, (1 - colorNum)*(1-darkness)+darkness, 1);
+                            break;//G(255->0)
+                        case 4:
+                            pointCloudDisplay->setPointColor_fast(i, colorNum*(1-darkness)+darkness, 0+darkness, 1);
+                            break;//R(0->255)
+                        case 5:
+                            pointCloudDisplay->setPointColor_fast(i, 0+darkness, 0+darkness, 1);
+                            break;
                     }
                 }
                 pointCloudDisplay->setPointSize(1.5);
