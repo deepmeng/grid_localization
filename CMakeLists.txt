@@ -21,6 +21,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   mrpt_bridge
   message_generation
+  can_mssgs
 )
 
 find_package(MRPT REQUIRED
