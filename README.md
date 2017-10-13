@@ -9,7 +9,7 @@ Matching step in this project is excuted between 3D point cloud (current measure
 
 MRPT-1.5 is required to build the project. See [how to get MRPT on Ubuntu](https://www.mrpt.org/MRPT_in_GNU/Linux_repositories).
 
-You can see DEMO [here](https://www.youtube.com/watch?v=GNgIDupisc4&t=).
+See DEMO [here](https://www.youtube.com/watch?v=GNgIDupisc4&t=).
 
 Localization result comparison is shown in "./result_image/20170920_0.05.png".
 
