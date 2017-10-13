@@ -75,7 +75,8 @@ pointcloud_receive::pointcloud_receive()
     timPrev = ros::Time::now().toSec();
     poseDR2D = CPose2D(0,0,0);
     poseDR3D = CPose3D(0,0,0);
-    poseEst2D = CPose2D(-21729,66191,-0.9);;
+    //poseEst2D = CPose2D(-21729,66191,-0.9);
+    poseEst2D = CPose2D(centerX,centerY,0);
 
     gridPlane = CGridPlaneXY::Create(-1000+centerX,1000+centerX,-1000+centerY,1000+centerY,0.01,10,0.5);
     gridPlane->setColor(0.375,0.375,0.375);
@@ -148,7 +149,7 @@ pointcloud_receive::pointcloud_receive()
         printf("Loading globalPointsMap...\n");
         //globalPointsMap.loadFromPlyFile(NAME_MAPFILE_PLY);//globalPointsMap_02.ply
         CSimplePointsMap globalPointsMapTemp;//获取globalPointsMap前的过度，根据高度配置抽取globalPointsMap
-        globalPointsMapTemp.loadFromPlyFile("/home/guolindong/catkin_ws/src/grid_localization/pointcloud/changshu_g200_every_2_whole_1.ply");
+        globalPointsMapTemp.loadFromPlyFile("/home/guolindong/catkin_ws/src/grid_localization/pointcloud/changshu_g200_every_2.ply");
         float max_x, max_y, max_z, min_x, min_y, min_z;
         globalPointsMapTemp.boundingBox(min_x, max_x, min_y, max_y, min_z, max_z);
         globalPointsMapTemp.extractPoints(
@@ -165,7 +166,7 @@ pointcloud_receive::pointcloud_receive()
 
 
     if(SAVE_RESULTANDLOG){
-        outputFile_result.open("/home/guolindong/catkin_ws/src/grid_localization/save_log/changshu_20170809_01.txt",0);
+        outputFile_result.open("/home/guolindong/catkin_ws/src/grid_localization/save_log/changshu_20170908_01.txt",0);
     }
 
     tictac.Tic();//start stop watch
@@ -271,9 +272,7 @@ void pointcloud_receive::pointcloud_callback(
     }
     else{
         DR.get_poseGps_ekf();//initialGuessStableCounter if use RTK-GPS to generate map
-        poseEkf2D = CPose2D(DR.robot_poseGps_ekf.x(),
-                            DR.robot_poseGps_ekf.y(),
-                            DR.robot_poseGps_ekf.phi());
+        poseEkf2D = CPose2D(DR.robot_poseGps_ekf.x(), DR.robot_poseGps_ekf.y(), DR.robot_poseGps_ekf.phi());
         if (isNan(poseEkf2D.x()) || isNan(poseEkf2D.y()) )
         {
             X0_init(0) = poseEkf2D_last.x();
@@ -293,15 +292,8 @@ void pointcloud_receive::pointcloud_callback(
         //poseEstDist2poseEKF = pointEst2D.distance2DTo(poseEkf2D.x(),poseEkf2D.y());
 
         //for matching using history pointclouds
-        poseIncr2D = CPose2D(DR.robot_pose_inc.x(),
-                             DR.robot_pose_inc.y(),
-                             DR.robot_pose_inc.phi());
-        poseIncr3D = CPose3D(DR.robot_pose_inc.x(),
-                             DR.robot_pose_inc.y(),
-                             0,
-                             DR.robot_pose_inc.phi(),
-                             0,
-                             0);
+        poseIncr2D = CPose2D(DR.robot_pose_inc.x(), DR.robot_pose_inc.y(), DR.robot_pose_inc.phi());
+        poseIncr3D = CPose3D(DR.robot_pose_inc.x(), DR.robot_pose_inc.y(), 0, DR.robot_pose_inc.phi(), 0, 0);
         poseDR2D += poseIncr2D;
         poseDR3D += poseIncr3D;
 
@@ -333,22 +325,19 @@ void pointcloud_receive::pointcloud_callback(
         step++;
     }
 
-    if(isGlobalGridMapCenterChange(poseEst2D.x(),
-                                   poseEst2D.y(),
-                                   curGridMapCenter.x(),
-                                   curGridMapCenter.y()))
+    if(isGlobalGridMapCenterChange(poseEst2D.x(), poseEst2D.y(), curGridMapCenter.x(), curGridMapCenter.y()))
     {
         char tempFileName[100];
         //文件夹路径
-        std::string grid_map_file_path="/home/guolindong/catkin_ws/src/grid_localization/map/changshu_g200_every2_0.1";
+        std::string grid_map_file_path="/home/guolindong/catkin_ws/src/grid_localization/map/changshu_g200_every2_0.05";
         //具体的地图图片文件名
         grid_map_file_path.append("/%i_%i.png");
         sprintf(tempFileName,grid_map_file_path.c_str(),(int)curGridMapCenter.x(), (int)curGridMapCenter.y());
         //若能够读取到地图
         if(myLoadFromBitmapFile(tempFileName,
                                 gridMap_resolution,
-                                gridMap_halfSize-curGridMapCenter.x()/gridMap_resolution,
-                                gridMap_halfSize-curGridMapCenter.y()/gridMap_resolution))
+                                (gridMap_halfSize-curGridMapCenter.x())/gridMap_resolution,
+                                (gridMap_halfSize-curGridMapCenter.y())/gridMap_resolution))
         {
             ROS_INFO("Map loaded: %f, %f", gridMap_halfSize - curGridMapCenter.x(),
                      gridMap_halfSize - curGridMapCenter.y());
@@ -399,14 +388,11 @@ void pointcloud_receive::pointcloud_callback(
                 {
                     xx = localGridMap.x2idx(tx[i]);
                     yy = localGridMap.y2idx(ty[i]);
-                    //localGridMap.setCell(xx,yy,0);
-                    /******************************/
                     spmLocalGridMap[xx][yy] += 1;
-                    if(tz[i]>spmLocalGridMap_max[xx][yy]){spmLocalGridMap_max[xx][yy] = tz[i];} //===
-                    else if(tz[i]<spmLocalGridMap_min[xx][yy]){spmLocalGridMap_min[xx][yy] = tz[i];} //===
-                    /******************************/
+                    if(tz[i]>spmLocalGridMap_max[xx][yy]){spmLocalGridMap_max[xx][yy] = tz[i];}
+                    else if(tz[i]<spmLocalGridMap_min[xx][yy]){spmLocalGridMap_min[xx][yy] = tz[i];}
                 }
-                /******************************/
+
                 float gap, density, tempValue;
                 float cx, cy;
                 int i, j;
@@ -414,7 +400,7 @@ void pointcloud_receive::pointcloud_callback(
                 {
                     for (j = 0; j < spmGridMap_n; j++)
                     {
-                        //first, counting the points amount in the cell
+                        //counting the points in the cell
                         if (spmLocalGridMap[i][j] < gridMap_cellPointsThreshold) continue;
                         gap = spmLocalGridMap_max[i][j];//-spmLocalGridMap_min[i][j];
                         if(!gap) continue;
@@ -428,7 +414,7 @@ void pointcloud_receive::pointcloud_callback(
                 if(GENERATE_GRIDMAPFILE){
                     char occupancyMapFileName[100];
                     std::string grid_map_file_path_temp=
-                            "/home/guolindong/catkin_ws/src/grid_localization/map/changshu_g200_every2_0.1";
+                            "/home/guolindong/catkin_ws/src/grid_localization/map/changshu_g200_every2_0.05";
                     grid_map_file_path_temp.append("/%i_%i.png");
                     sprintf(occupancyMapFileName,
                             grid_map_file_path_temp.c_str(),
@@ -445,7 +431,6 @@ void pointcloud_receive::pointcloud_callback(
             //根据局部点云数据生成地图？
         }
     }//end of else
-
 
     //-----------------------------------Map Aligner-----------------------------------------
     //if (LOAD_POINTCLOUD && icpStarted && !USE_GPSFORMAPPING)
@@ -466,14 +451,16 @@ void pointcloud_receive::pointcloud_callback(
             X0(1)=poseEkf2D.y();
             X0(2)=poseEkf2D.phi();
             if(X0(2)<0)X0(2)+=2*PI;
-            P0(0,0)=1,P0(1,1)=1,P0(2,2)=0.1;
+            P0(0,0)=1;
+            P0(1,1)=1;
+            P0(2,2)=0.1;
             DR.glResult_EKF.init(3,X0,P0);//grid_localization结果的EKF的 初始化
         }
         //若icp已经获得初始定位结果（但通常是比较糟糕的结果）
         else{
             icp.options.maxIterations = icp_maxIterationAfterFirst;
             icp.options.thresholdDist = 1;
-            initialGuess = poseEst2D_last + poseIncr2D;// + rando;
+            initialGuess = poseEst2D_last + poseIncr2D;// + random to test matcher;
         }
         //以上判断最终会给出用于icp的初始假设
         pdfG = CPosePDFGaussian(initialGuess);//
@@ -539,7 +526,7 @@ void pointcloud_receive::pointcloud_callback(
     CPoint2D pointTemp(poseEst2D.x(),poseEst2D.y());
     poseEstDist2poseEKF = pointTemp.distance2DTo(poseEkf2D.x(),poseEkf2D.y());
 
-    memUsageMb = (float)getMemoryUsage()/(1024*1024);  //what do you want to 
+    memUsageMb = (float)getMemoryUsage()/(1024*1024);
 
     if(SAVE_RESULTANDLOG)
     {
@@ -561,12 +548,14 @@ void pointcloud_receive::pointcloud_callback(
         std_msgs::Float64MultiArray pose_vlp16;
         double outLat, outLon;
         DR.xy2latlon(poseEst2D.x(),poseEst2D.y(), outLat, outLon);//xy2latlon
+
         pose_vlp16.data.push_back(poseEst2D.x()+output_pose_shift_x);     //x
         pose_vlp16.data.push_back(poseEst2D.y()+output_pose_shift_y);     //y
         pose_vlp16.data.push_back(poseEst2D.phi());   //phi
         pose_vlp16.data.push_back(outLat);            //lat
         pose_vlp16.data.push_back(outLon);            //lon
         pose_vlp16.data.push_back(poseEst2D.phi());   //phi
+
         pose_pub.publish(pose_vlp16);
     }
 
@@ -775,8 +764,8 @@ void pointcloud_receive::pointcloud_callback(
         const string textMsgState = win3DMsgState;
         win3D.addTextMessage(0.05,0.95,textMsgState,TColorf(1,1,0),0,MRPT_GLUT_BITMAP_HELVETICA_12);
 
-        if(!(step % 50))
-            ROS_INFO("memory usage: %.1f MB",memUsageMb);
+//        if(!(step % 50))
+//            ROS_INFO("memory usage: %.1f MB",memUsageMb);
 
         opengl::COpenGLScenePtr &ptrScene = win3D.get3DSceneAndLock();
         ptrScene = scene;
@@ -792,19 +781,19 @@ bool pointcloud_receive::isGlobalGridMapCenterChange(double robot_x, double robo
 {
     int x, y;
     if (robot_x > 0) {
-        x = int(robot_x + 100); //强制类型转换
+        x = int(robot_x + 10);
         x = floor(x / 20) * 20;
     }
     else {
-        x = robot_x - 10;
+        x = int(robot_x - 10);
         x = ceil(x / 20) * 20;
     }
     if (robot_y > 0){
-        y = robot_y + 10;
+        y = int(robot_y + 10);
         y = floor(y / 20) * 20;
     }
     else {
-        y = robot_y - 10;
+        y = int(robot_y - 10);
         y = ceil(y / 20) * 20;
     }
 
