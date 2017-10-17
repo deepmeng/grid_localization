@@ -23,11 +23,12 @@
 #define z_Gap 2 //1.5//7
 
 #define x_Min -50
-#define x_Max 100
+#define x_Max 50
 #define y_Min -50
 #define y_Max 50
 
 #define distance_Max 40
+#define distance_Min 3
 
 #define lidar_max_range 80
 
@@ -185,32 +186,10 @@ namespace mrpt_bridge
           r = 1 - 0.8*(float)ring/16;
           b = 0.8*(float)ring/16;
         }
-        
-        //from red to blue
-        // if(z>z_Min+3*z_Gap/4){
-        //     r= 1.0f;
-        //     g= 1-(z*4-z_Min*4-3*z_Gap)/z_Gap;
-        //     b= 0.0f;
-        // }
-        // else if(z>z_Min+z_Gap/2){
-        //     r= (z*4-z_Min*4-2*z_Gap)/z_Gap;
-        //     g= 1.0f;
-        //     b= 0.0f;
-        // }
-        // else if(z>z_Min+z_Gap/4){
-        //     r= 0.0f;
-        //     g= 1.0f;
-        //     b= 1-(z*4-z_Min*4-z_Gap)/z_Gap;
-        // }
-        // else {
-        //     r= 0.0f;
-        //     g= (z*4-z_Min*4)/z_Gap;
-        //     b= 1.0f;
-        // }
 
         //if(x>x_Min && x<x_Max && z>z_Min &&z<z_Max && y<y_Max && y>y_Min){
         float laser_point_range = sqrt(x*x+y*y+z*z);
-        if(laser_point_range > 3 && laser_point_range < distance_Max){
+        if(laser_point_range > distance_Min && laser_point_range < distance_Max){
             obj.insertPoint(x,y,z,r,g,b);
             //printf("%i, %f\n",ring, intensity);
             //obj.insertPoint(x,y,z,intensity/100,intensity/100,intensity/100);
@@ -221,114 +200,6 @@ namespace mrpt_bridge
     return true;
   }
 
-
-  // bool copy2pointXYZIR(const sensor_msgs::PointCloud2 &msg, CColouredPointsMap &obj)
-  // {
-  //   unsigned int num_points = msg.width * msg.height;
-  //   obj.clear();
-  //   obj.reserve(num_points);
-
-  //   bool incompatible_clouds = false;
-  //   const sensor_msgs::PointField *x_field = NULL, *y_field = NULL, *z_field = NULL, *ring_field = NULL, *intensity_field = NULL;
-
-  //   for (unsigned int i = 0; i < msg.fields.size() && !incompatible_clouds; i++)
-  //   {
-  //     incompatible_clouds |= check_field(msg.fields[i], "x", &x_field);
-  //     incompatible_clouds |= check_field(msg.fields[i], "y", &y_field);
-  //     incompatible_clouds |= check_field(msg.fields[i], "z", &z_field);
-  //     incompatible_clouds |= check_field(msg.fields[i], "ring", &ring_field);
-  //     incompatible_clouds |= check_field(msg.fields[i], "intensity", &intensity_field);
-  //   }
-  //     //printf("%s, %s",ring_field, intensity_field);
-  //   if (incompatible_clouds || (x_field == NULL && y_field == NULL && z_field == NULL && intensity_field==NULL && ring_field==NULL))
-  //   {
-  //       //printf("losing data fields %s, %s",ring_field, intensity_field);
-  //       ROS_INFO("Losing data fields <point_cloud2.cpp:copy2pointXYZIR>");
-  //       return false;
-  //   }
-
-  //   // If not, memcpy each group of contiguous fields separately
-  //   for (unsigned int row = 0; row < msg.height; ++row)
-  //   {
-  //     const unsigned char* row_data = &msg.data[row * msg.row_step    ];
-  //     for (uint32_t col = 0; col < msg.width; ++col)
-  //     {
-  //       const unsigned char* msg_data = row_data + col * msg.point_step;
-
-  //       float x, y, z, r, g, b, intensity;
-  //       int ring;
-  //       get_float_from_field(x_field, msg_data, x);
-  //       get_float_from_field(y_field, msg_data, y);
-  //       get_float_from_field(z_field, msg_data, z);
-  //       get_float_from_field(intensity_field, msg_data, intensity);
-  //       get_int_from_field(ring_field, msg_data, ring);
-
-  //       //clip out points too close (often hit on GPS)
-  //       if((x*x+y*y)<2.25) continue;
-
-  //       if(x>x_Min && x<x_Max && z>z_Min &&z<z_Max && y<y_Max && y>y_Min){
-  //           obj.insertPoint(x,y,z,(float)ring/8,(float)intensity/255,1-(float)ring/8);// if reserve all the points, we should use 16 instead of 8 on "ring" related values
-  //       }
-  //       //else continue;
-  //     }
-  //   }
-  //   return true;
-  // }
-
-
-  /** Convert sensor_msgs/PointCloud2 -> vector<mrpt::slam::CSimplePointsMap>
-   *
-   * \return true on sucessful conversion, false on any error.
-   */
-  // bool copy2VectorPointCloud(const sensor_msgs::PointCloud2 &msg, vector<CSimplePointsMap> &obj)
-  // {
-  //   // Copy point data
-  //   unsigned int num_points = msg.width * msg.height;
-  //   CSimplePointsMap pm;
-  //   //obj.clear();
-  //   //obj.reserve(num_points);
-
-  //   bool incompatible_clouds = false;
-  //   const sensor_msgs::PointField *x_field = NULL, *y_field = NULL, *z_field = NULL;
-  //   for (unsigned int i = 0; i < msg.fields.size() && !incompatible_clouds; i++){
-  //     incompatible_clouds |= check_field(msg.fields[i], "x", &x_field);
-  //     incompatible_clouds |= check_field(msg.fields[i], "y", &y_field);
-  //     incompatible_clouds |= check_field(msg.fields[i], "z", &z_field);
-  //   }
-  //   if (incompatible_clouds || (x_field == NULL && y_field == NULL && z_field == NULL))
-  //     return false;
-
-  //   // If not, memcpy each group of contiguous fields separately
-  //   for (unsigned int row = 0; row < msg.height; ++row){
-  //       const unsigned char* row_data = &msg.data[row * msg.row_step];
-  //       for (uint32_t col = 0; col < msg.width; ++col){
-  //           const unsigned char* msg_data = row_data + col * msg.point_step;
-  //           float x, y, z;
-  //           get_float_from_field(x_field, msg_data, x);
-  //           get_float_from_field(y_field, msg_data, y);
-  //           get_float_from_field(z_field, msg_data, z);
-  //           //if(z >pointsMap_heightMin && z<pointsMap_heightMax) //改过
-  //           if(x>x_Min && z<z_Max && y<y_Max && y>y_Min){
-  //               //obj.insertPoint(x, y, z);
-  //           }
-  //           else continue;
-  //       }
-  //   }
-  //   return true;
-  // }
-
-  // bool copy2VectorPointCloud(const sensor_msgs::PointCloud2 &msg, CSimplePointsMap &obj)
-  // {
-
-  // }
-
-
-  /** Convert mrpt::slam::CSimplePointsMap -> sensor_msgs/PointCloud2
-   *  The user must supply the "msg_header" field to be copied into the output message object, since that part does not appear in MRPT classes.
-   *
-   *  Since CSimplePointsMap only contains (x,y,z) data, sensor_msgs::PointCloud2::channels will be empty.
-   * \return true on sucessful conversion, false on any error.
-   */
   bool copy(const CSimplePointsMap &obj, const std_msgs::Header &msg_header, sensor_msgs::PointCloud2 &msg)
   {
     //MRPT_TODO("Implement pointcloud2 mrpt2ros");

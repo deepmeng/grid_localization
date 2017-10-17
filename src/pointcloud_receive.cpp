@@ -205,7 +205,7 @@ void pointcloud_receive::pointcloud_callback(
 
         curPointsMapColoredTemp.insertionOptions.minDistBetweenLaserPoints = minDisBetweenLaserPoints;
         curPointsMapColoredTemp.insertAnotherMap(&curPointsMapColoredFront,CPose3D(0,0,0,0,0,0));
-        curPointsMapColoredTemp.insertAnotherMap(&curPointsMapColoredRear,CPose3D(0,0,0,0,0,0));
+        //curPointsMapColoredTemp.insertAnotherMap(&curPointsMapColoredRear,CPose3D(0,0,0,0,0,0));
 
         float max_x, max_y, max_z, min_x, min_y, min_z;
         curPointsMapColoredTemp.boundingBox(min_x, max_x, min_y, max_y, min_z, max_z);

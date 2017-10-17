@@ -52,7 +52,7 @@ dead_reckoning::dead_reckoning()
     pulse_sum =0;
     mileage_sum = 0;
     robot_pose_gps = CPose2D(-21729,66191,-0.9);
-    robot_pose_inc = CPose2D(-21729,66191,-0.9);
+    robot_pose_inc = CPose2D(0,0,0); //CPose2D(-21729,66191,-0.9);
     poseIncr2D = CPose2D(0, 0, 0);
     tictacDR.Tic();
     ticPre = tictacDR.Tac();
@@ -230,7 +230,7 @@ void dead_reckoning::get_poseGps()
         robot_pose_gps.phi(phi);
       
         poseGps2D_last = poseGps2D;
-        clear_sum();//这句仅在这个函数中使用 注意
+        clear_sum();//only used in this function
     }
 }
 
