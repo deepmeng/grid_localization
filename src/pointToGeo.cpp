@@ -14,7 +14,7 @@ void pointToGeo::mercatordeProj(double scale, pointToGeo origin)
 //ostream& operator<<(ostream& Out,pointToGeo &p){Out<<"the latlon of the point is ["<<p.latlon[0]<<","<<p.latlon[1]<<"], and the coordinate is ["<<p.coordinate[0]<<','<<p.coordinate[1]<<']'<<endl; return Out;}
 //istream& operator>>(istream& In,pointToGeo &p){In>>p.latlon[0]>>p.latlon[1]; return In;}
 
-void pointToGeo::gps2meter(double & gpsInMeter_east, double & gpsInMeter_north, double Lat, double Lon, double Ellipse_L0, double OriginX, double OriginY, double OffsetX, double OffsetY)
+void pointToGeo::gps2meter(double Lat, double Lon, double Ellipse_L0, double OriginX, double OriginY, double OffsetX, double OffsetY)
 {
 	static const double Ellipse_a = 6378137;
 	static const double Ellipse_b = 6356752.3142;
@@ -53,7 +53,10 @@ void pointToGeo::gps2meter(double & gpsInMeter_east, double & gpsInMeter_north, 
 	tempx += OffsetX * 100;
 	tempy += OffsetY * 100;
 
-	gpsInMeter_east = (tempx) / 100.0;   //m,x
-	gpsInMeter_north = (tempy) / 100.0;   //m,y
+	//gpsInMeter_east = (tempx) / 100.0;   //m,x
+	//gpsInMeter_north = (tempy) / 100.0;   //m,y
+
+	coordinate[0] = (tempx) / 100.0;
+	coordinate[1] = (tempy) / 100.0;
 }
 
