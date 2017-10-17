@@ -22,7 +22,7 @@
 #define z_Min -2.5  //-2
 #define z_Gap 2 //1.5//7
 
-#define x_Min -50
+#define x_Min -5
 #define x_Max 50
 #define y_Min -50
 #define y_Max 50

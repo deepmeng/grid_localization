@@ -16,28 +16,20 @@ public:
 	double GPS_OffsetY;// = 1.03;
 	double Ellipse_L0;// = 120.4620;
 	double DisenableCtlNode;
+    double latlon[2];
+    double coordinate[2];
 
 
 
 public:
-	double latlon[2];
-	double coordinate[2];
-	pointToGeo(){ latlon[0]=0.0; latlon[1]=0.0; coordinate[0]=0.0; coordinate[1]=0.0; 
-		GPS_OriginX = 529246.000;
-		GPS_OriginY = 3496650.000;
-		GPS_OffsetX = -1.1;
-		GPS_OffsetY = 1.03;
-		Ellipse_L0 = 120.4620;
-		DisenableCtlNode = 1;
-		}
-    pointToGeo(double lat, double lon=0.0, double heng=0.0, double shu=0.0){ latlon[0]=lat; latlon[1]=lon; coordinate[0]=heng; coordinate[1]=shu;}
+	pointToGeo();
+    //pointToGeo(double lat, double lon=0.0, double heng=0.0, double shu=0.0){ latlon[0]=lat; latlon[1]=lon; coordinate[0]=heng; coordinate[1]=shu;}
 	pointToGeo(const pointToGeo& P){latlon[0]=P.latlon[0]; latlon[1]=P.latlon[1]; coordinate[0]=P.coordinate[0];coordinate[1]=P.coordinate[1];}
 	~pointToGeo(){}
-	void mercatorProj(double scale, pointToGeo origin=0.0);
-    void mercatordeProj(double scale,  pointToGeo origin=0.0);
+
+	//void mercatorProj(double scale, pointToGeo origin=0.0);
+    //void mercatordeProj(double scale,  pointToGeo origin=0.0);
 	void gps2meter(
-		double Lat, 
-		double Lon, 
 		double Ellipse_L0, 
 		double OriginX, 
 		double OriginY, 

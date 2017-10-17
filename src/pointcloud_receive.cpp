@@ -1,6 +1,5 @@
 #include "pointcloud_receive.h"
 
-
 pointcloud_receive::pointcloud_receive()
 {
     step = 0;   //计数器，全局
@@ -10,8 +9,8 @@ pointcloud_receive::pointcloud_receive()
     firstTimeShowGps = true;    //
     odoTemp = 0;
     icpStarted = false;
-    centerX = -21700;//42500;//42000
-    centerY = 66100;//2700;//2700
+    centerX = 0;//42500;//42000
+    centerY = 0;//2700;//2700
     CPoint2D gridPlaneCenter = CPoint2D(centerX, centerY);//地面网格中心
     poseEstDist2poseEKF = 0;
     gpsEkfDown = false;
@@ -149,7 +148,7 @@ pointcloud_receive::pointcloud_receive()
         printf("Loading globalPointsMap...\n");
         //globalPointsMap.loadFromPlyFile(NAME_MAPFILE_PLY);//globalPointsMap_02.ply
         CSimplePointsMap globalPointsMapTemp;//获取globalPointsMap前的过度，根据高度配置抽取globalPointsMap
-        globalPointsMapTemp.loadFromPlyFile("/home/guolindong/catkin_ws/src/grid_localization/pointcloud/changshu_g200_every_2.ply");
+        globalPointsMapTemp.loadFromPlyFile("/home/guolindong/catkin_ws/src/grid_localization/pointcloud/cyberfly_g200_oct_nine.ply");
         float max_x, max_y, max_z, min_x, min_y, min_z;
         globalPointsMapTemp.boundingBox(min_x, max_x, min_y, max_y, min_z, max_z);
         globalPointsMapTemp.extractPoints(
@@ -166,7 +165,16 @@ pointcloud_receive::pointcloud_receive()
 
 
     if(SAVE_RESULTANDLOG){
-        outputFile_result.open("/home/guolindong/catkin_ws/src/grid_localization/save_log/changshu_20170908_01.txt",0);
+        time_t timep;
+        struct tm *p;
+        time(&timep);
+        p=gmtime(&timep);
+
+        char log_file_name[200];
+        sprintf(log_file_name,"/%d%02d%02d-%02d%02d%02d.txt",(1900+p->tm_year),(1+p->tm_mon),p->tm_mday,p->tm_hour,p->tm_min,p->tm_sec);
+        std::string log_file_path="/home/guolindong/catkin_ws/src/grid_localization/save_log";
+        log_file_path.append(log_file_name);
+        outputFile_result.open(log_file_path,0);
     }
 
     tictac.Tic();//start stop watch
@@ -205,7 +213,7 @@ void pointcloud_receive::pointcloud_callback(
 
         curPointsMapColoredTemp.insertionOptions.minDistBetweenLaserPoints = minDisBetweenLaserPoints;
         curPointsMapColoredTemp.insertAnotherMap(&curPointsMapColoredFront,CPose3D(0,0,0,0,0,0));
-        //curPointsMapColoredTemp.insertAnotherMap(&curPointsMapColoredRear,CPose3D(0,0,0,0,0,0));
+        curPointsMapColoredTemp.insertAnotherMap(&curPointsMapColoredRear,CPose3D(0,0,0,0,0,0));
 
         float max_x, max_y, max_z, min_x, min_y, min_z;
         curPointsMapColoredTemp.boundingBox(min_x, max_x, min_y, max_y, min_z, max_z);
@@ -266,7 +274,6 @@ void pointcloud_receive::pointcloud_callback(
                 poseEst2D_last = poseEst2D;
                 poseEkf2D_last = poseEkf2D;
             }
-            //else if(SAVE_POINTCLOUD) poseEst2D_last = poseEkf2D;
             if(SAVE_POINTCLOUD) poseEst2D_last = poseEkf2D;
         }
     }
@@ -318,7 +325,8 @@ void pointcloud_receive::pointcloud_callback(
             {
                 globalPointsMap.insertAnotherMap(
                         &curPointsMapColored,
-                        CPose3D(poseEkf2D.x(),poseEkf2D.y(),0,poseEkf2D.phi(),0,0)
+                        //CPose3D(poseEkf2D.x(),poseEkf2D.y(),0,poseEkf2D.phi(),0,0) //用gps结果叠加点云
+                        CPose3D(poseEst2D.x(),poseEst2D.y(),0,poseEst2D.phi(),0,0)  //用定位结果叠加点云
                 );//insert only when velocity is not zero
             }
         }
@@ -329,7 +337,7 @@ void pointcloud_receive::pointcloud_callback(
     {
         char tempFileName[100];
         //文件夹路径
-        std::string grid_map_file_path="/home/guolindong/catkin_ws/src/grid_localization/map/changshu_g200_every2_0.05";
+        std::string grid_map_file_path="/home/guolindong/catkin_ws/src/grid_localization/map/cyberfly_g200_oct";
         //具体的地图图片文件名
         grid_map_file_path.append("/%i_%i.png");
         sprintf(tempFileName,grid_map_file_path.c_str(),(int)curGridMapCenter.x(), (int)curGridMapCenter.y());
@@ -413,8 +421,7 @@ void pointcloud_receive::pointcloud_callback(
                 //保存生成的gridmap图片文件
                 if(GENERATE_GRIDMAPFILE){
                     char occupancyMapFileName[100];
-                    std::string grid_map_file_path_temp=
-                            "/home/guolindong/catkin_ws/src/grid_localization/map/changshu_g200_every2_0.05";
+                    std::string grid_map_file_path_temp="/home/guolindong/catkin_ws/src/grid_localization/map/cyberfly_g200_oct";
                     grid_map_file_path_temp.append("/%i_%i.png");
                     sprintf(occupancyMapFileName,
                             grid_map_file_path_temp.c_str(),
@@ -468,6 +475,8 @@ void pointcloud_receive::pointcloud_callback(
         //若用占据栅格地图作为参考地图进行匹配定位
         if(!USE_GLOBALPOINTCLOUDFORMATCHING)
         {
+            CTicTac icp_tic;
+            icp_tic.Tic();
             CPosePDFPtr pdf = icp.AlignPDF(
                 &localGridMap,			// Reference map //localPointsMap
                 &curPointsMapColored,	// Map to be aligned
@@ -485,6 +494,7 @@ void pointcloud_receive::pointcloud_callback(
                     (float)covariance_matching(2,2),
                     info.goodness);
             }
+            icp_tic.Tac();
         }
 
         //若用全局点云地图作为参考进行匹配定位
@@ -552,9 +562,9 @@ void pointcloud_receive::pointcloud_callback(
         pose_vlp16.data.push_back(poseEst2D.x()+output_pose_shift_x);     //x
         pose_vlp16.data.push_back(poseEst2D.y()+output_pose_shift_y);     //y
         pose_vlp16.data.push_back(poseEst2D.phi());   //phi
-        pose_vlp16.data.push_back(outLat);            //lat
-        pose_vlp16.data.push_back(outLon);            //lon
-        pose_vlp16.data.push_back(poseEst2D.phi());   //phi
+        //pose_vlp16.data.push_back(outLat);            //lat
+        //pose_vlp16.data.push_back(outLon);            //lon
+        //pose_vlp16.data.push_back(poseEst2D.phi());   //phi
 
         pose_pub.publish(pose_vlp16);
     }
@@ -654,7 +664,7 @@ void pointcloud_receive::pointcloud_callback(
 
         if(SHOW_ROBOTPATH)
         {
-            if(!(poseEst2D_last.x()==0 && poseEst2D_last.y()==0) && initialGuessStableCounter>1)
+            if(!(poseEst2D_last.x()==0 && poseEst2D_last.y()==0))
             {
                 if (isPoseEstGood)
                 {
@@ -865,16 +875,16 @@ void pointcloud_receive::grid_localization_init()
     if(excute_mode == 0) //累积点云并存储
     {
         configFile.setFileName("/home/guolindong/catkin_ws/src/grid_localization/config/config_Save_Pointcloud.ini");
-        ROS_INFO("***EXCUTE_MODE = SAVE_POINT_CLOUD***");
+        ROS_INFO("EXCUTE_MODE = SAVE_POINT_CLOUD");
     }    
     else if (excute_mode == 1)  //生成并存储占据栅格图
     {
         configFile.setFileName("/home/guolindong/catkin_ws/src/grid_localization/config/config_Generate_GridMap.ini");
-        ROS_INFO("***EXCUTE_MODE = GENERATE_AND_SAVE_GRIDMAP***");
+        ROS_INFO("EXCUTE_MODE = GENERATE_AND_SAVE_GRIDMAP");
     }    
     else if (excute_mode == 2)
     {
-        ROS_INFO("***EXCUTE_MODE = LOCALIZATION***");
+        ROS_INFO("EXCUTE_MODE = LOCALIZATION");
         configFile.setFileName("/home/guolindong/catkin_ws/src/grid_localization/config/config_Localization.ini");
     }  //全局定位模式
         

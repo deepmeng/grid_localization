@@ -1,20 +1,35 @@
 
 #include "pointToGeo.h"
 
-void pointToGeo::mercatorProj(double scale,pointToGeo origin)
+pointToGeo::pointToGeo()
 {
-	coordinate[0]=scale*latlon[1]*(M_PI/180.0)*EARTH_RAD_EQ-origin.coordinate[0];
-	coordinate[1]=scale*EARTH_RAD_EQ*log(tan((90.0 + latlon[0]) * (M_PI/360.0)))-origin.coordinate[1];
+    latlon[0]=0.0;
+    latlon[1]=0.0;
+    coordinate[0]=0.0;
+    coordinate[1]=0.0;
+
+    GPS_OriginX = 529246.000;
+    GPS_OriginY = 3496650.000;
+    GPS_OffsetX = -1.1;
+    GPS_OffsetY = 1.03;
+    Ellipse_L0 = 120.4620;
+    DisenableCtlNode = 1;
 }
-void pointToGeo::mercatordeProj(double scale, pointToGeo origin)
-{
-	latlon[0]=360.0/M_PI*atan(exp((coordinate[1]+origin.coordinate[1])/(scale*EARTH_RAD_EQ)))-90.0;
-	latlon[1]=180.0*(coordinate[0]+origin.coordinate[0])/(scale*EARTH_RAD_EQ*M_PI);
-}
+
+//void pointToGeo::mercatorProj(double scale,pointToGeo origin)
+//{
+//	coordinate[0]=scale*latlon[1]*(M_PI/180.0)*EARTH_RAD_EQ-origin.coordinate[0];
+//	coordinate[1]=scale*EARTH_RAD_EQ*log(tan((90.0 + latlon[0]) * (M_PI/360.0)))-origin.coordinate[1];
+//}
+//void pointToGeo::mercatordeProj(double scale, pointToGeo origin)
+//{
+//	latlon[0]=360.0/M_PI*atan(exp((coordinate[1]+origin.coordinate[1])/(scale*EARTH_RAD_EQ)))-90.0;
+//	latlon[1]=180.0*(coordinate[0]+origin.coordinate[0])/(scale*EARTH_RAD_EQ*M_PI);
+//}
 //ostream& operator<<(ostream& Out,pointToGeo &p){Out<<"the latlon of the point is ["<<p.latlon[0]<<","<<p.latlon[1]<<"], and the coordinate is ["<<p.coordinate[0]<<','<<p.coordinate[1]<<']'<<endl; return Out;}
 //istream& operator>>(istream& In,pointToGeo &p){In>>p.latlon[0]>>p.latlon[1]; return In;}
 
-void pointToGeo::gps2meter(double Lat, double Lon, double Ellipse_L0, double OriginX, double OriginY, double OffsetX, double OffsetY)
+void pointToGeo::gps2meter(double Ellipse_L0, double OriginX, double OriginY, double OffsetX, double OffsetY)
 {
 	static const double Ellipse_a = 6378137;
 	static const double Ellipse_b = 6356752.3142;
@@ -28,8 +43,8 @@ void pointToGeo::gps2meter(double Lat, double Lon, double Ellipse_L0, double Ori
 	static const double Ellipse_C3 = -35 / 48 * pow(Ellipse_n, 3) + 0.41015625*pow(Ellipse_n, 5);
 	static const double Ellipse_C4 = 0.615234375*pow(Ellipse_n, 4);
 
-	double Ellipse_lat = Lat*PI / 180;
-	double Ellipse_lon = (Lon - Ellipse_L0)*PI / 180;
+	double Ellipse_lat = latlon[0]*PI / 180;
+	double Ellipse_lon = (latlon[1] - Ellipse_L0)*PI / 180;
 	double Ellipse_N = Ellipse_a / sqrt(1 - pow(Ellipse_e*sin(Ellipse_lat), 2));
 	double Ellipse_t = tan(Ellipse_lat);
 	double Ellipse_g = Ellipse_ee*cos(Ellipse_lat);

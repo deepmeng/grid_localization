@@ -18,7 +18,7 @@ dead_reckoning::dead_reckoning()
     gpsOrigin.latlon[0] = latMean;
     gpsOrigin.latlon[1] = lonMean;
     scale = cos(latMean*(Pi/180.0));// the latmean position
-    gpsOrigin.mercatorProj(scale);
+    //gpsOrigin.mercatorProj(scale);
 
     //EKF initialization
     XSENS_Diff= 1.36e-3;//1.36e-3//1.76e-6;
@@ -72,6 +72,7 @@ dead_reckoning::dead_reckoning()
     gpsSum_x = 0;
     gpsSum_y = 0;
     n280Orientation = 0;
+
 }
 
 // void dead_reckoning::n280Orientation_callback(const std_msgs::Float64 &msg)
@@ -85,14 +86,18 @@ dead_reckoning::dead_reckoning()
 void dead_reckoning::rtk_callback(const sensor_msgs::NavSatFix &msg)
 {  
     gps_data = msg;
-
-    //ROS_INFO("%.10f, %.10f",msg.latitude, msg.1 );
     //latitude or longitude to XY
     gpsPos.latlon[0] = gps_data.latitude;//gps纬度数据
     gpsPos.latlon[1] = gps_data.longitude;//gps经度数据
-    gpsPos.mercatorProj(scale, gpsOrigin);
-    poseGps2D = CPose2D(gpsPos.coordinate[0]*1000, gpsPos.coordinate[1]*1000,0);
-    poseGps3D = CPose3D(gpsPos.coordinate[0]*1000, gpsPos.coordinate[1]*1000, gps_data.altitude, 0,0,0);
+    //gpsPos.mercatorProj(scale, gpsOrigin);
+    gpsPos.gps2meter(gpsPos.Ellipse_L0,
+                     gpsPos.GPS_OriginX,
+                     gpsPos.GPS_OriginY,
+                     gpsPos.GPS_OffsetX,
+                     gpsPos.GPS_OffsetX);
+
+    poseGps2D = CPose2D(gpsPos.coordinate[0], gpsPos.coordinate[1],0);
+    poseGps3D = CPose3D(gpsPos.coordinate[0], gpsPos.coordinate[1], gps_data.altitude, 0,0,0);
     //ROS_INFO("%.2f, %.10f",poseGps2D.x(), poseGps2D.y());
 
     //gps based ekf initiallizaiton
@@ -274,7 +279,7 @@ void dead_reckoning::xy2latlon(double x,double y, double &lat, double &lon)
 {
     gpsOut.coordinate[1] = y/1000;
     gpsOut.coordinate[0] = x/1000;
-    gpsOut.mercatordeProj(scale, gpsOrigin);
+    //gpsOut.mercatordeProj(scale, gpsOrigin);
     lat = gpsOut.latlon[0];
     lon = gpsOut.latlon[1];
 }

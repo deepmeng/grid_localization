@@ -14,7 +14,7 @@ int main(int argc, char** argv)
     ros::waitForShutdown();
 
     if(gl.SAVE_POINTCLOUD){
-        gl.littlePointsMap.saveToPlyFile("/home/guolindong/catkin_ws/src/grid_localization/pointcloud/changshu_g200_01.ply",true);
+        gl.globalPointsMap.saveToPlyFile("/home/guolindong/catkin_ws/src/grid_localization/pointcloud/cyberfly_g200_oct.ply",true);
         ROS_INFO("Point cloud PLY file saved.");
         gl.globalPointsMap.clear();
     }
