@@ -5,6 +5,11 @@
 
 #include <stdio.h>
 #include <time.h>
+#include <stdlib.h> //for beep
+#include <fcntl.h>  //for beep
+#include <linux/kd.h>//for beep
+#include <sys/ioctl.h>
+
 #include <ros/ros.h>
 #include"sensor_msgs/Imu.h"
 #include <sensor_msgs/PointCloud2.h>
@@ -105,7 +110,9 @@ class pointcloud_receive
 
 public:
     int excute_mode;
-    int process_counter;
+    string ply_file_save_path;
+    string ply_file_path;
+    string map_file_path;
 
     std::string ini_file_path;
     std::string pointcloud_topic_name;
@@ -114,8 +121,10 @@ public:
     std::string grid_map_path;
     std::string log_path;
     time_t nowtime;
+
     int step;
     bool notDoingIcpYet, firstTimeShowGps;
+    bool is_icp_gn_high;
 
     bool SHOW_WINDOW3D;
     bool SHOW_MINIWINDOW;
@@ -127,6 +136,7 @@ public:
     bool SHOW_GRIDBOXS;
     bool SHOW_ROBOTPOSE;
     bool SHOW_ROBOTPATH;
+    bool SHOW_ROBOTMODEL;
     bool SHOW_GROUNDTRUTHPATH;
     bool SHOW_GPSEKFPOSE;
     bool USE_GLOBALPOINTCLOUDFORMATCHING;
@@ -176,7 +186,8 @@ public:
     float pose_rear_VLP16_pitch;
     float pose_rear_VLP16_roll;
 
-    int icp_maxIterationFirst;
+    float icp_goodness_threshold;
+    int icp_maxIterations;
     int icp_maxIterationAfterFirst;
 
     CICP icp;
@@ -190,6 +201,7 @@ public:
 
     CTicTac tictac, mainLoop;
     CMatrixDouble33 covariance_matching;
+    float icp_tic_time;
 
     //array for holding cell properties, for grid map generation
     int **spmLocalGridMap;
@@ -260,8 +272,6 @@ public:
     CFileOutputStream outputFile_result;
 
     //内存占用
-    long memUsageByte;
-    float memUsageMb;
     float memory_usage_pointcloud;
 
 public:
@@ -285,6 +295,9 @@ public:
     bool myLoadFromBitmap(const mrpt::utils::CImage &imgFl, float resolution, float xCentralPixel, float yCentralPixel);
 
     bool isNan(float fN);
+
+    void BeepOn(unsigned int beep_type);
+
 };
 
 #endif // POINTCLOUD_RECEIVE_H

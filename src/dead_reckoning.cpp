@@ -5,14 +5,9 @@
 dead_reckoning::dead_reckoning()
 {
     ros::NodeHandle pnh("~");			//定义私有节点句柄，用于传递参数  
-    //pnh.param<std::string>("gps_topic_name",gps_topic_name,"/fix");
     imu_sub_ = nh_.subscribe("/imu_torso/xsens/imu",1,&dead_reckoning::xsens_callback,this);   //imu
-    //velocity_sub_ = nh_.subscribe("velocity",1,&dead_reckoning::velocity_callback,this);    //velocity
     pulse_sub = nh_.subscribe("/CanDecode_1/SpeedMilSteer",1,&dead_reckoning::odo_callback,this);  //odometry//// /RecvCAN_1/SpeedMilSteer  /CanDecode_1/SpeedMilSteer
     rtkgps_sub_ = nh_.subscribe("/fix",1,&dead_reckoning::rtk_callback,this);  //GPS
-    //garmin_sub = nh_.subscribe("/garmin/fix",1,&dead_reckoning::rtk_callback,this);  //GPS    
-    //n280_sub = nh_.subscribe("/n280/fix",1,&dead_reckoning::rtk_callback,this);
-    //n280Orientation_sub = nh_.subscribe("/n280/GPS_N280/orientation",1,&dead_reckoning::n280Orientation_callback,this);
 
     //GPS & XY coordinate exchange
     gpsOrigin.latlon[0] = latMean;
@@ -75,14 +70,6 @@ dead_reckoning::dead_reckoning()
 
 }
 
-// void dead_reckoning::n280Orientation_callback(const std_msgs::Float64 &msg)
-// {
-//     float yawTemp = msg.data[0] /180 *Pi;
-//     if(yawTemp < (Pi/2)) n280Orientation = Pi/2 - yawTemp;
-//     else if(yawTemp < (Pi*1.5)) n280Orientation = Pi/2 - yawTemp;
-//     else n280Orientation =  2*Pi - yawTemp + Pi/2;
-// }
-
 void dead_reckoning::rtk_callback(const sensor_msgs::NavSatFix &msg)
 {  
     gps_data = msg;
@@ -113,11 +100,10 @@ void dead_reckoning::rtk_callback(const sensor_msgs::NavSatFix &msg)
         double dy = poseGps2D.y() - gpsSum_y/initGpsCounter;
         Lu_Matrix X0(3,1);
         Lu_Matrix P0(3,3);
-        X0(0)=rtkGps_x; 
-        X0(1)=rtkGps_y;
-        X0(2)=atan2(dy,dx);
-        X0(2) = -0.9;
-        if(X0(2)<0)X0(2)+=2*PI;
+        X0(0,0)=rtkGps_x;
+        X0(1,0)=rtkGps_y;
+        X0(2,0)=atan2(dy,dx);
+        if(X0(2,0)<0) X0(2,0) += 2*PI;
         P0(0,0)=1,P0(1,1)=1,P0(2,2)=0.1;
         GPSINS_EKF.init(3,X0,P0);
         glResult_EKF.init(3,X0,P0);
@@ -263,9 +249,9 @@ void dead_reckoning::get_poseGps_ekf()
 
     Lu_Matrix state(3);
     state=GPSINS_EKF.getState();
-    robot_poseGps_ekf.x(state(0));
-    robot_poseGps_ekf.y(state(1));
-    robot_poseGps_ekf.phi(state(2));
+    robot_poseGps_ekf.x(state(0,0));
+    robot_poseGps_ekf.y(state(1,0));
+    robot_poseGps_ekf.phi(state(2,0));
 /*  //给robot_poseResult_ekf赋值无太大意义
     Lu_Matrix state(3);
     state=glResult_EKF.getState();
@@ -279,7 +265,7 @@ void dead_reckoning::xy2latlon(double x,double y, double &lat, double &lon)
 {
     gpsOut.coordinate[1] = y/1000;
     gpsOut.coordinate[0] = x/1000;
-    //gpsOut.mercatordeProj(scale, gpsOrigin);
+    gpsOut.mercatordeProj(scale, gpsOrigin);
     lat = gpsOut.latlon[0];
     lon = gpsOut.latlon[1];
 }

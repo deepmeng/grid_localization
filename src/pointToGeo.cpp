@@ -16,16 +16,16 @@ pointToGeo::pointToGeo()
     DisenableCtlNode = 1;
 }
 
-//void pointToGeo::mercatorProj(double scale,pointToGeo origin)
-//{
-//	coordinate[0]=scale*latlon[1]*(M_PI/180.0)*EARTH_RAD_EQ-origin.coordinate[0];
-//	coordinate[1]=scale*EARTH_RAD_EQ*log(tan((90.0 + latlon[0]) * (M_PI/360.0)))-origin.coordinate[1];
-//}
-//void pointToGeo::mercatordeProj(double scale, pointToGeo origin)
-//{
-//	latlon[0]=360.0/M_PI*atan(exp((coordinate[1]+origin.coordinate[1])/(scale*EARTH_RAD_EQ)))-90.0;
-//	latlon[1]=180.0*(coordinate[0]+origin.coordinate[0])/(scale*EARTH_RAD_EQ*M_PI);
-//}
+void pointToGeo::mercatorProj(double scale,pointToGeo origin)
+{
+	coordinate[0]=scale*latlon[1]*(M_PI/180.0)*EARTH_RAD_EQ-origin.coordinate[0];
+	coordinate[1]=scale*EARTH_RAD_EQ*log(tan((90.0 + latlon[0]) * (M_PI/360.0)))-origin.coordinate[1];
+}
+void pointToGeo::mercatordeProj(double scale, pointToGeo origin)
+{
+	latlon[0]=360.0/M_PI*atan(exp((coordinate[1]+origin.coordinate[1])/(scale*EARTH_RAD_EQ)))-90.0;
+	latlon[1]=180.0*(coordinate[0]+origin.coordinate[0])/(scale*EARTH_RAD_EQ*M_PI);
+}
 //ostream& operator<<(ostream& Out,pointToGeo &p){Out<<"the latlon of the point is ["<<p.latlon[0]<<","<<p.latlon[1]<<"], and the coordinate is ["<<p.coordinate[0]<<','<<p.coordinate[1]<<']'<<endl; return Out;}
 //istream& operator>>(istream& In,pointToGeo &p){In>>p.latlon[0]>>p.latlon[1]; return In;}
 

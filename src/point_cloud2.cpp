@@ -27,7 +27,7 @@
 #define y_Min -50
 #define y_Max 50
 
-#define distance_Max 40
+#define distance_Max 60
 #define distance_Min 3
 
 #define lidar_max_range 80

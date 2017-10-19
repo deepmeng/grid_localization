@@ -23,12 +23,12 @@ public:
 
 public:
 	pointToGeo();
-    //pointToGeo(double lat, double lon=0.0, double heng=0.0, double shu=0.0){ latlon[0]=lat; latlon[1]=lon; coordinate[0]=heng; coordinate[1]=shu;}
+    pointToGeo(double lat, double lon=0.0, double heng=0.0, double shu=0.0){ latlon[0]=lat; latlon[1]=lon; coordinate[0]=heng; coordinate[1]=shu;}
 	pointToGeo(const pointToGeo& P){latlon[0]=P.latlon[0]; latlon[1]=P.latlon[1]; coordinate[0]=P.coordinate[0];coordinate[1]=P.coordinate[1];}
 	~pointToGeo(){}
 
-	//void mercatorProj(double scale, pointToGeo origin=0.0);
-    //void mercatordeProj(double scale,  pointToGeo origin=0.0);
+	void mercatorProj(double scale, pointToGeo origin=0.0);
+    void mercatordeProj(double scale,  pointToGeo origin=0.0);
 	void gps2meter(
 		double Ellipse_L0, 
 		double OriginX, 
