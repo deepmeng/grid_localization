@@ -11,8 +11,6 @@ MRPT-1.5 is required to build the project. See [how to get MRPT on Ubuntu](https
 
 See DEMO [here](https://www.youtube.com/watch?v=GNgIDupisc4&t=).
 
-Localization result comparison is shown in "./result_image/20170920_0.05.png".
-
 
 ## Main Functions
 1.Point cloud generation.
