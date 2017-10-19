@@ -81,7 +81,7 @@ void dead_reckoning::rtk_callback(const sensor_msgs::NavSatFix &msg)
                      gpsPos.GPS_OriginX,
                      gpsPos.GPS_OriginY,
                      gpsPos.GPS_OffsetX,
-                     gpsPos.GPS_OffsetX);
+                     gpsPos.GPS_OffsetY);
 
     poseGps2D = CPose2D(gpsPos.coordinate[0], gpsPos.coordinate[1],0);
     poseGps3D = CPose3D(gpsPos.coordinate[0], gpsPos.coordinate[1], gps_data.altitude, 0,0,0);

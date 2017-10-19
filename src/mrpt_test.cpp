@@ -7,7 +7,6 @@ int main(int argc, char** argv)
     // ros::AsyncSpinner spinner(0);
     // spinner.start();
 
-
     ros::MultiThreadedSpinner spinner(4);
     spinner.spin();
 
@@ -22,6 +21,5 @@ int main(int argc, char** argv)
         gl.outputFile_raw.close();
         gl.outputFile_result.close();
     }
-
     return 0;
 }

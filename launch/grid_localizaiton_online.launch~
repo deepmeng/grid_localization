@@ -1,13 +1,15 @@
-<!-- Starts up all sim node -->
+<!-- grid_localization offline launch file, localization  -->
 <launch>
 
 	<node  pkg="grid_localization" type="grid_localization" name="grid_localization" output="screen">
 		<param name="excute_mode" type="int" value="2" />
-		<!-- 模式选择，3个选项，
-			0为累积并存储全局点云，
-			1为生成并存储栅格图，
-			2为全局定位-->
+		<!-- excute_mode selection:
+			0:get global point cloud map，
+			1:generate grid map from global point cloud map，
+			2:localization against reference map(gridmap/pointcloudmap)-->
+		<param name="pointcloud_file" type="string" value="/home/guolindong/catkin_ws/src/grid_localization/pointcloud/cyberfly_g200_oct_cloud.ply" />
+		<param name="gridmap_path" type="string" value="/home/guolindong/catkin_ws/src/grid_localization/map/cyberfly_g200_oct" />
+		<param name="log_file_path" type="string" value="/home/guolindong/catkin_ws/src/grid_localization/save_log" />
 	</node>
-
 
 </launch>

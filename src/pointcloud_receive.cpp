@@ -29,21 +29,34 @@ pointcloud_receive::pointcloud_receive()
     P0_init(1,1)=1;
     P0_init(2,2)=0.1;
 
+    //NH
     ros::NodeHandle nh;
     ros::NodeHandle pnh("~");
 
+    //subscribe
     sub_velodyne_front = new message_filters::Subscriber<sensor_msgs::PointCloud2> (nh, "/front/velodyne_points", 2);
     sub_velodyne_rear = new message_filters::Subscriber<sensor_msgs::PointCloud2> (nh, "/rear/velodyne_points", 2);
     sync = new Synchronizer<MySyncPolicy> (MySyncPolicy(10), *sub_velodyne_front, *sub_velodyne_rear);
     sync->registerCallback(boost::bind(&pointcloud_receive::pointcloud_callback, this, _1, _2));
 
-
+    //publishe
     pose_pub = nh.advertise<std_msgs::Float64MultiArray>("pose_vlp16",2);
 
+    //parameter
     pnh.param<int>("excute_mode", excute_mode, 2);
+    pnh.param<string>("pointcloud_file", pointcloud_file, "/home/guolindong/catkin_ws/src/grid_localization/pointcloud/cyberfly_g200_oct_cloud.ply");
+    pnh.param<string>("gridmap_path", gridmap_path, "/home/guolindong/catkin_ws/src/grid_localization/map/cyberfly_g200_oct");
+    pnh.param<string>("log_file_path", log_file_path, "/home/guolindong/catkin_ws/src/grid_localization/save_log");
+
     pnh.getParam("excute_mode",excute_mode);
+    pnh.getParam("pointcloud_file",pointcloud_file);
+    pnh.getParam("gridmap_path",gridmap_path);
+    pnh.getParam("log_file_path",log_file_path);
+
+    //grid_localization configuration initialization
     grid_localization_init(); //init part show be called after getting excute_mode
 
+    // win3D display initialization
     if(SHOW_WINDOW3D)
     {
         win3D.setWindowTitle("CyberFly_View");
@@ -54,18 +67,19 @@ pointcloud_receive::pointcloud_receive()
         win3D.setCameraZoom(150);
     }
 
+    //
     initialGuessStableCounter = 0;
     initialGuess = CPose2D(0,0,0);
     hasCurRobotPoseEst = false;
     isPoseEstGood = true;
 
+    //CSimplePointsMap and CPointsMapColored initialization
     globalPointsMap.enableFilterByHeight(true);
     globalPointsMap.setHeightFilterLevels(pointsMap_heightMin, pointsMap_heightMax);
     globalPointsMap.insertionOptions.minDistBetweenLaserPoints = minDisBetweenLaserPoints;
     localPointsMap.enableFilterByHeight(true);
     localPointsMap.setHeightFilterLevels(pointsMap_heightMin, pointsMap_heightMax);
     localPointsMap.insertionOptions.minDistBetweenLaserPoints = minDisBetweenLaserPoints;
-
     curPointsMapColored.enableFilterByHeight(true);
     curPointsMapColored.setHeightFilterLevels(pointsMap_heightMin,pointsMap_heightMax);
     curPointsMapColored.insertionOptions.minDistBetweenLaserPoints = minDisBetweenLaserPoints;
@@ -82,6 +96,7 @@ pointcloud_receive::pointcloud_receive()
     //poseEst2D = CPose2D(-21729,66191,-0.9);
     poseEst2D = CPose2D(centerX,centerY,0);
 
+    //
     gridPlane = CGridPlaneXY::Create(-1000+centerX,1000+centerX,-1000+centerY,1000+centerY,0.01,10,0.5);
     gridPlane->setColor(0.375,0.375,0.375);
     objAxis = opengl::stock_objects::CornerXYZSimple(2,2);
@@ -90,7 +105,6 @@ pointcloud_receive::pointcloud_receive()
     objGpsEKF = opengl::stock_objects::CornerXYZSimple(2,2);
     objGpsEKF->setName("GT");
     objGpsEKF->enableShowName(true);
-    //objGpsEKF->setColor(0,0,1);
 
     obj_text_ground_truth = mrpt::opengl::CText::Create();
     obj_text_estimated_pose;
@@ -135,7 +149,7 @@ pointcloud_receive::pointcloud_receive()
         printf("Loading globalPointsMap...\n");
         //globalPointsMap.loadFromPlyFile(NAME_MAPFILE_PLY);//globalPointsMap_02.ply
         CSimplePointsMap globalPointsMapTemp;//temp point cloud for generate globalPointsMap
-        globalPointsMapTemp.loadFromPlyFile("/home/guolindong/catkin_ws/src/grid_localization/pointcloud/cyberfly_g200_oct_cloud.ply");
+        globalPointsMapTemp.loadFromPlyFile(pointcloud_file);
         float max_x, max_y, max_z, min_x, min_y, min_z;
         globalPointsMapTemp.boundingBox(min_x, max_x, min_y, max_y, min_z, max_z);
         globalPointsMapTemp.extractPoints(
@@ -161,7 +175,6 @@ pointcloud_receive::pointcloud_receive()
         sprintf(log_file_name,
                 "/%d-%02d-%02d-%02d-%02d-%02d.txt",
                 (1900+p->tm_year),(1+p->tm_mon),p->tm_mday,p->tm_hour,p->tm_min,p->tm_sec);
-        std::string log_file_path="/home/guolindong/catkin_ws/src/grid_localization/save_log";
         log_file_path.append(log_file_name);
         outputFile_result.open(log_file_path,0);
     }
@@ -332,11 +345,10 @@ void pointcloud_receive::pointcloud_callback(
     if(isGlobalGridMapCenterChange(poseEst2D.x(), poseEst2D.y(), curGridMapCenter.x(), curGridMapCenter.y()))
     {
         char tempFileName[100];
-        //grid map file path
-        std::string grid_map_file_path="/home/guolindong/catkin_ws/src/grid_localization/map/cyberfly_g200_oct";
+        std::string gridmap_file_path = gridmap_path;
         //grid map file name
-        grid_map_file_path.append("/%i_%i.png");
-        sprintf(tempFileName,grid_map_file_path.c_str(),(int)curGridMapCenter.x(), (int)curGridMapCenter.y());
+        gridmap_file_path.append("/%i_%i.png");
+        sprintf(tempFileName,gridmap_file_path.c_str(),(int)curGridMapCenter.x(), (int)curGridMapCenter.y());
         //if get grid map file
         if(myLoadFromBitmapFile(tempFileName,
                                 gridMap_resolution,
@@ -417,10 +429,10 @@ void pointcloud_receive::pointcloud_callback(
                 //save grid map file to image
                 if(GENERATE_GRIDMAPFILE){
                     char occupancyMapFileName[100];
-                    std::string grid_map_file_path_temp="/home/guolindong/catkin_ws/src/grid_localization/map/cyberfly_g200_oct";
-                    grid_map_file_path_temp.append("/%i_%i.png");
+                    std::string gridmap_file_path_temp = gridmap_path;
+                    gridmap_file_path_temp.append("/%i_%i.png");
                     sprintf(occupancyMapFileName,
-                            grid_map_file_path_temp.c_str(),
+                            gridmap_file_path_temp.c_str(),
                             (int)curGridMapCenter.x(),
                             (int)curGridMapCenter.y());
                     localGridMap.saveAsBitmapFile(occupancyMapFileName);

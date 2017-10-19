@@ -109,10 +109,11 @@ class pointcloud_receive
     message_filters::Synchronizer<MySyncPolicy> *sync = NULL;
 
 public:
+    //ros param
     int excute_mode;
-    string ply_file_save_path;
-    string ply_file_path;
-    string map_file_path;
+    string pointcloud_file;
+    string gridmap_path;
+    string log_file_path;
 
     std::string ini_file_path;
     std::string pointcloud_topic_name;
