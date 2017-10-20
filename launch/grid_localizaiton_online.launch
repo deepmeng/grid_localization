@@ -10,6 +10,7 @@
 		<param name="pointcloud_file" type="string" value="/home/guolindong/catkin_ws/src/grid_localization/pointcloud/cyberfly_g200_oct_cloud.ply" />
 		<param name="gridmap_path" type="string" value="/home/guolindong/catkin_ws/src/grid_localization/map/cyberfly_g200_oct" />
 		<param name="log_file_path" type="string" value="/home/guolindong/catkin_ws/src/grid_localization/save_log" />
+		<param name="config_file_path" type="string" value="/home/guolindong/catkin_ws/src/grid_localization/config" />
 	</node>
 
 </launch>

@@ -6,29 +6,6 @@
 ----------------------------------------------------------------------------*/
 pointcloud_receive::pointcloud_receive()
 {
-    step = 0;   //global counter
-    is_icp_gn_high = false;
-    DR.whichGpsForInitial = whichGpsForInitial;
-    DR.notDoingIcpYet = true;
-    firstTimeShowGps = true;
-    odoTemp = 0;
-    icpStarted = false;
-    centerX = 0;//42500;//42000
-    centerY = 0;//2700;//2700
-    CPoint2D gridPlaneCenter = CPoint2D(centerX, centerY);//center of grid plane
-    poseEstDist2poseEKF = 0;
-    gpsEkfDown = false;
-
-    GLOBV_RO = Lu_Matrix(2,2);//
-    X0_init = Lu_Matrix(3,1);
-    P0_init = Lu_Matrix(3,3);
-    X0_init(0,0)=0;
-    X0_init(1,0)=0;
-    X0_init(2,0)=0;
-    P0_init(0,0)=1;
-    P0_init(1,1)=1;
-    P0_init(2,2)=0.1;
-
     //NH
     ros::NodeHandle nh;
     ros::NodeHandle pnh("~");
@@ -55,20 +32,7 @@ pointcloud_receive::pointcloud_receive()
     pnh.getParam("log_file_path", log_file_path);
     pnh.getParam("config_file_path", config_file_path);
     //print param
-    switch(excute_mode)
-    {
-        case 0:
-            ROS_INFO("EXCUTE_MODE = SAVE_POINT_CLOUD");
-            break;
-        case 1:
-            ROS_INFO("EXCUTE_MODE = GENERATE_AND_SAVE_GRIDMAP");
-            break;
-        case 2:
-            ROS_INFO("EXCUTE_MODE = LOCALIZATION");
-            break;
-        default:
-            ROS_INFO("Wrong EXCUTE_MODE, should be 0,1,2, check launch file");
-    }
+
     ROS_INFO("pointcloud_file: %s",pointcloud_file.c_str());
     ROS_INFO("gridmap_path: %s",gridmap_path.c_str());
     ROS_INFO("log_file_path: %s",log_file_path.c_str());
@@ -78,145 +42,7 @@ pointcloud_receive::pointcloud_receive()
     //grid_localization configuration initialization
     grid_localization_init(); //init part show be called after getting excute_mode
 
-    /*---------------------win3D display initialization-------------------------*/
-    if(SHOW_WINDOW3D)
-    {
-        win3D.setWindowTitle("CyberFly_View");
-        win3D.resize(1280, 720);
-        win3D.setCameraAzimuthDeg(270);//方向沿y轴由负方向向正方向看
-        win3D.setCameraElevationDeg(90);//俯角20°
-        win3D.setCameraPointingToPoint(0, 0, 0);
-        win3D.setCameraZoom(150);
-    }
-
-    //
-    initialGuessStableCounter = 0;
-    initialGuess = CPose2D(0,0,0);
-    hasCurRobotPoseEst = false;
-    isPoseEstGood = true;
-
-    /*---------------------points map configuration----------------------*/
-    //CSimplePointsMap and CPointsMapColored initialization
-    globalPointsMap.enableFilterByHeight(true);
-    globalPointsMap.setHeightFilterLevels(pointsMap_heightMin, pointsMap_heightMax);
-    globalPointsMap.insertionOptions.minDistBetweenLaserPoints = minDisBetweenLaserPoints;
-    localPointsMap.enableFilterByHeight(true);
-    localPointsMap.setHeightFilterLevels(pointsMap_heightMin, pointsMap_heightMax);
-    localPointsMap.insertionOptions.minDistBetweenLaserPoints = minDisBetweenLaserPoints;
-    curPointsMapColored.enableFilterByHeight(true);
-    curPointsMapColored.setHeightFilterLevels(pointsMap_heightMin,pointsMap_heightMax);
-    curPointsMapColored.insertionOptions.minDistBetweenLaserPoints = minDisBetweenLaserPoints;
-    localPointsMapColored.enableFilterByHeight(true);
-    localPointsMapColored.setHeightFilterLevels(pointsMap_heightMin,pointsMap_heightMax);
-    localPointsMapColored.insertionOptions.minDistBetweenLaserPoints = minDisBetweenLaserPoints;
-    globalPointsMapColored.enableFilterByHeight(true);
-    globalPointsMapColored.setHeightFilterLevels(pointsMap_heightMin,pointsMap_heightMax);
-    globalPointsMapColored.insertionOptions.minDistBetweenLaserPoints = minDisBetweenLaserPoints;
-    //a point in front of the vehicle, as the center of local point cloud (for clipOutOfRange())
-    clipCenter = CPoint2D(0,0);
-    curGridMapCenter = CPoint2D(0,0);
-    dFromPoseToCenter = 20;
-
-    timPrev = ros::Time::now().toSec();
-
-    poseDR2D = CPose2D(0,0,0);
-    poseDR3D = CPose3D(0,0,0);
-    //poseEst2D = CPose2D(-21729,66191,-0.9);
-    poseEst2D = CPose2D(centerX,centerY,0);
-
-    /*--------------------elements in 3D window initialization---------------------*/
-    //grid plane
-    gridPlane = CGridPlaneXY::Create(-1000+centerX,1000+centerX,-1000+centerY,1000+centerY,0.01,10,0.5);
-    gridPlane->setColor(0.375,0.375,0.375);
-    //axis for estimated pose (grid localization pose)
-    objAxis = opengl::stock_objects::CornerXYZSimple(2,2);
-    objAxis->setName("poseEst");
-    objAxis->enableShowName(true);
-    //axis for ground truth pose (gps pose)
-    objGpsEKF = opengl::stock_objects::CornerXYZSimple(2,2);
-    objGpsEKF->setName("GT");
-    objGpsEKF->enableShowName(true);
-    //3D text object
-    obj_text_ground_truth = mrpt::opengl::CText::Create();
-    obj_text_estimated_pose;
-    //path object (once) of grid localization result, should be inserted to objSetPath
-    objEkfPath = CSetOfLines::Create();
-    //path set
-    objSetPath = CSetOfObjects::Create();
-    //disk
-    objDisk = CDisk::Create();
-    objDisk->setDiskRadius(30 );
-    objDisk->setColor(1,0.2,1);
-
-
-    /*----------gridmap memory alloc(for generation gridmap)----------*/
-    if(GENERATE_GRIDMAP)
-    {
-        spmGridMap_m = gridMap_halfSize*2 / gridMap_resolution;
-        spmGridMap_n = gridMap_halfSize*2 / gridMap_resolution;
-        spmLocalGridMap = (int**)malloc(sizeof(int*)* spmGridMap_m); //¿ª±ÙÐÐ
-        spmLocalGridMap_max = (float**)malloc(sizeof(float*)* spmGridMap_m);
-        spmLocalGridMap_min = (float**)malloc(sizeof(float*)* spmGridMap_m);
-
-        //initial the gridMap correlate counting array
-        for (int i = 0; i < spmGridMap_m; i++){
-            *(spmLocalGridMap + i) = (int*)malloc(sizeof(int)* spmGridMap_n);//¿ª±ÙÁÐ
-            *(spmLocalGridMap_max + i) = (float*)malloc(sizeof(float)* spmGridMap_n);
-            *(spmLocalGridMap_min + i) = (float*)malloc(sizeof(float)* spmGridMap_n);
-        }
-        //erase the gridMap correlate counting array
-        for (int i = 0; i < spmGridMap_m; i++){
-            for (int j = 0; j < spmGridMap_n; j++){
-                spmLocalGridMap[i][j] = 0;
-                spmLocalGridMap_max[i][j] = 0;
-                spmLocalGridMap_min[i][j] = 0;
-            }
-        }
-    }
-
-    /*----------------------load point cloud file---------------------*/
-    //gridMap initialization
-    if(LOAD_POINTCLOUD)
-    {
-        //start timer for point cloud load timing
-        tictac.Tic();
-        printf("Loading globalPointsMap...\n");
-        CSimplePointsMap globalPointsMapTemp;//temp point cloud for generate globalPointsMap
-        globalPointsMapTemp.loadFromPlyFile(pointcloud_file);
-        float max_x, max_y, max_z, min_x, min_y, min_z;
-        globalPointsMapTemp.boundingBox(min_x, max_x, min_y, max_y, min_z, max_z);
-        globalPointsMapTemp.extractPoints(
-            TPoint3D(min_x, min_y, pointsMap_heightMin), 
-            TPoint3D(max_x, max_y, pointsMap_heightMax), 
-            &globalPointsMap);
-        //print
-
-        printf("globalPointsMap load in %.3f s.\nglobalPointsMap size: %i points\n", tictac.Tac(), (int)globalPointsMap.size());
-        //print memory usage
-        memory_usage_pointcloud = (float)getMemoryUsage()/(1024*1024);
-        ROS_INFO("Memory usage after initialization: %fMb",memory_usage_pointcloud);
-    }
-
-    /*----------------------initialize log file name---------------------*/
-    if(SAVE_RESULTANDLOG){
-        time_t timep;
-        struct tm *p;
-        time(&timep);
-        p=gmtime(&timep);
-
-        char log_file_name[200];
-        sprintf(log_file_name,
-                "/%d-%02d-%02d-%02d-%02d-%02d.txt",
-                (1900+p->tm_year),(1+p->tm_mon),p->tm_mday,p->tm_hour,p->tm_min,p->tm_sec);
-        log_file_path.append(log_file_name);
-        outputFile_result.open(log_file_path,0);
-    }
-    //start timer for main process
-    tictac.Tic();
-
-    ROS_INFO("Grid_localization initialization done.");
 }
-
 
 /*---------------------------------------------------------------------------
                     LiDAR callback, Main process
@@ -228,7 +54,7 @@ void pointcloud_receive::pointcloud_callback(
 {
     mainLoop.Tic();//start the stop watch
 
-    /*-------------------------Get LiDAR data and form points map------------------------*/
+    /*----------------------Get LiDAR data and form points map--------------------*/
     try{
         CColouredPointsMap curPointsMapColoredTemp,curPointsMapColoredFront,curPointsMapColoredRear;
         mrpt_bridge::copy2colouredPointsMap(front,curPointsMapColoredFront); //to CColoredPointsMap
@@ -275,13 +101,10 @@ void pointcloud_receive::pointcloud_callback(
         if (DR.firstGpsUpdate)
         {
             DR.calculate_pose_inc();    //for ordinary usage, like localization
-            DR.get_poseGps_ekf();//用这个结果与glResult进行对比，假设poseGps_ekf为groundTruth
+            DR.get_poseGps_ekf();   //use poseGps_ekf as GT?
             //DR.get_pose_ekf();
             poseIncr2D = CPose2D(DR.robot_pose_inc.x(),DR.robot_pose_inc.y(),DR.robot_pose_inc.phi());
-            //poseIncr3D = CPose3D(DR.robot_pose_inc.x(),DR.robot_pose_inc.y(),0,DR.robot_pose_inc.phi(),0,0);
-
             poseDR2D += poseIncr2D;
-            //poseDR3D += poseIncr3D;
 
             //if need relocate using ICP according to the current GPS(or if ICP failed) 
             CPoint2D pointEst2D = CPoint2D(poseEst2D.x(),poseEst2D.y());
@@ -339,9 +162,7 @@ void pointcloud_receive::pointcloud_callback(
 
         //for matching using history pointclouds
         poseIncr2D = CPose2D(DR.robot_pose_inc.x(), DR.robot_pose_inc.y(), DR.robot_pose_inc.phi());
-        //poseIncr3D = CPose3D(DR.robot_pose_inc.x(), DR.robot_pose_inc.y(), 0, DR.robot_pose_inc.phi(), 0, 0);
         poseDR2D += poseIncr2D;
-        //poseDR3D += poseIncr3D;
 
         initialGuessStableCounter++;//follow gps for a while
         if(initialGuessStableCounter > gpsInitialStableCounter)
@@ -608,7 +429,7 @@ void pointcloud_receive::pointcloud_callback(
         {
             objGridMap = CSetOfObjects::Create();
             localGridMap.getAs3DObject(objGridMap);
-            objGridMap->setColorA(0.9);
+            objGridMap->setColorA(0.7);
             objGridMap->setLocation(CPoint3D(0,0,-0.01));
             scene->insert(objGridMap);
         }
@@ -909,18 +730,25 @@ bool pointcloud_receive::isNan(float fN)
 void pointcloud_receive::grid_localization_init()
 {
     CConfigFile configFile;
-    if(excute_mode == 0) //accumulate and save global point cloud
+
+    switch(excute_mode)
     {
-        configFile.setFileName("/home/guolindong/catkin_ws/src/grid_localization/config/config_Save_Pointcloud.ini");
-    }    
-    else if (excute_mode == 1)  //gegnerate and save grid map
-    {
-        configFile.setFileName("/home/guolindong/catkin_ws/src/grid_localization/config/config_Generate_GridMap.ini");
-    }    
-    else if (excute_mode == 2)  //localization
-    {
-        configFile.setFileName("/home/guolindong/catkin_ws/src/grid_localization/config/config_Localization.ini");
+        case 0:
+            config_file_path.append("/config_Save_Pointcloud.ini");
+            ROS_INFO("EXCUTE_MODE = SAVE_POINT_CLOUD");
+            break;
+        case 1:
+            config_file_path.append("/config_Generate_GridMap.ini");
+            ROS_INFO("EXCUTE_MODE = GENERATE_AND_SAVE_GRIDMAP");
+            break;
+        case 2:
+            config_file_path.append("/config_Localization.ini");
+            ROS_INFO("EXCUTE_MODE = LOCALIZATION");
+            break;
+        default:
+            ROS_INFO("Wrong EXCUTE_MODE, should be 0,1,2, check launch file");
     }
+    configFile.setFileName(config_file_path);
 
     SHOW_WINDOW3D           = configFile.read_bool("BasicSettings","SHOW_WINDOW3D",1,false);
     SHOW_MINIWINDOW         = configFile.read_bool("BasicSettings","SHOW_MINIWINDOW",0,false);
@@ -990,11 +818,172 @@ void pointcloud_receive::grid_localization_init()
     icp.options.loadFromConfigFile(configFile, "ICP");
     //icp.options.maxIterations = icp_maxIterations;
 
-    //若用GPS生成点云
+    //if use GPS for point cloud mapping
     if(SAVE_POINTCLOUD) LOAD_POINTCLOUD = false;
     //grid map mapping(already have point cloud, but doesn't have grid map)
     if(USE_GPSFORMAPPING) {
         SAVE_POINTCLOUD = false;
         LOAD_POINTCLOUD = true;
     }
+
+    step = 0;   //global counter
+    is_icp_gn_high = false;
+    DR.whichGpsForInitial = whichGpsForInitial;
+    DR.notDoingIcpYet = true;
+    firstTimeShowGps = true;
+    odoTemp = 0;
+    icpStarted = false;
+    centerX = 0;//42500;//42000
+    centerY = 0;//2700;//2700
+    CPoint2D gridPlaneCenter = CPoint2D(centerX, centerY);//center of grid plane
+    poseEstDist2poseEKF = 0;
+    gpsEkfDown = false;
+
+    GLOBV_RO = Lu_Matrix(2,2);//
+    X0_init = Lu_Matrix(3,1);
+    P0_init = Lu_Matrix(3,3);
+    X0_init(0,0)=0;
+    X0_init(1,0)=0;
+    X0_init(2,0)=0;
+    P0_init(0,0)=1;
+    P0_init(1,1)=1;
+    P0_init(2,2)=0.1;
+
+    /*---------------------win3D display initialization-------------------------*/
+    if(SHOW_WINDOW3D)
+    {
+        win3D.setWindowTitle("CyberFly_View");
+        win3D.resize(1280, 720);
+        win3D.setCameraAzimuthDeg(270);//方向沿y轴由负方向向正方向看
+        win3D.setCameraElevationDeg(90);//俯角20°
+        win3D.setCameraPointingToPoint(0, 0, 0);
+        win3D.setCameraZoom(150);
+    }
+
+    //
+    initialGuessStableCounter = 0;
+    initialGuess = CPose2D(0,0,0);
+    hasCurRobotPoseEst = false;
+    isPoseEstGood = true;
+
+    /*---------------------points map configuration----------------------*/
+    //CSimplePointsMap and CPointsMapColored initialization
+    globalPointsMap.enableFilterByHeight(true);
+    globalPointsMap.setHeightFilterLevels(pointsMap_heightMin, pointsMap_heightMax);
+    globalPointsMap.insertionOptions.minDistBetweenLaserPoints = minDisBetweenLaserPoints;
+    localPointsMap.enableFilterByHeight(true);
+    localPointsMap.setHeightFilterLevels(pointsMap_heightMin, pointsMap_heightMax);
+    localPointsMap.insertionOptions.minDistBetweenLaserPoints = minDisBetweenLaserPoints;
+    curPointsMapColored.enableFilterByHeight(true);
+    curPointsMapColored.setHeightFilterLevels(pointsMap_heightMin,pointsMap_heightMax);
+    curPointsMapColored.insertionOptions.minDistBetweenLaserPoints = minDisBetweenLaserPoints;
+    localPointsMapColored.enableFilterByHeight(true);
+    localPointsMapColored.setHeightFilterLevels(pointsMap_heightMin,pointsMap_heightMax);
+    localPointsMapColored.insertionOptions.minDistBetweenLaserPoints = minDisBetweenLaserPoints;
+    globalPointsMapColored.enableFilterByHeight(true);
+    globalPointsMapColored.setHeightFilterLevels(pointsMap_heightMin,pointsMap_heightMax);
+    globalPointsMapColored.insertionOptions.minDistBetweenLaserPoints = minDisBetweenLaserPoints;
+    //a point in front of the vehicle, as the center of local point cloud (for clipOutOfRange())
+    clipCenter = CPoint2D(0,0);
+    curGridMapCenter = CPoint2D(0,0);
+    dFromPoseToCenter = 20;
+
+    timPrev = ros::Time::now().toSec();
+
+    poseDR2D = CPose2D(0,0,0);
+    poseDR3D = CPose3D(0,0,0);
+    //poseEst2D = CPose2D(-21729,66191,-0.9);
+    poseEst2D = CPose2D(centerX,centerY,0);
+
+    /*--------------------elements in 3D window initialization---------------------*/
+    //grid plane
+    gridPlane = CGridPlaneXY::Create(-1000+centerX,1000+centerX,-1000+centerY,1000+centerY,0.01,10,0.5);
+    gridPlane->setColor(0.375,0.375,0.375);
+    //axis for estimated pose (grid localization pose)
+    objAxis = opengl::stock_objects::CornerXYZSimple(2,2);
+    objAxis->setName("poseEst");
+    objAxis->enableShowName(true);
+    //axis for ground truth pose (gps pose)
+    objGpsEKF = opengl::stock_objects::CornerXYZSimple(2,2);
+    objGpsEKF->setName("GT");
+    objGpsEKF->enableShowName(true);
+    //3D text object
+    obj_text_ground_truth = mrpt::opengl::CText::Create();
+    obj_text_estimated_pose;
+    //path object (once) of grid localization result, should be inserted to objSetPath
+    objEkfPath = CSetOfLines::Create();
+    //path set
+    objSetPath = CSetOfObjects::Create();
+    //disk
+    objDisk = CDisk::Create();
+    objDisk->setDiskRadius(30 );
+    objDisk->setColor(1,0.2,1);
+
+
+    /*----------gridmap memory alloc(for generation gridmap)----------*/
+    if(GENERATE_GRIDMAP)
+    {
+        spmGridMap_m = gridMap_halfSize*2 / gridMap_resolution;
+        spmGridMap_n = gridMap_halfSize*2 / gridMap_resolution;
+        spmLocalGridMap = (int**)malloc(sizeof(int*)* spmGridMap_m); //¿ª±ÙÐÐ
+        spmLocalGridMap_max = (float**)malloc(sizeof(float*)* spmGridMap_m);
+        spmLocalGridMap_min = (float**)malloc(sizeof(float*)* spmGridMap_m);
+
+        //initial the gridMap correlate counting array
+        for (int i = 0; i < spmGridMap_m; i++){
+            *(spmLocalGridMap + i) = (int*)malloc(sizeof(int)* spmGridMap_n);//¿ª±ÙÁÐ
+            *(spmLocalGridMap_max + i) = (float*)malloc(sizeof(float)* spmGridMap_n);
+            *(spmLocalGridMap_min + i) = (float*)malloc(sizeof(float)* spmGridMap_n);
+        }
+        //erase the gridMap correlate counting array
+        for (int i = 0; i < spmGridMap_m; i++){
+            for (int j = 0; j < spmGridMap_n; j++){
+                spmLocalGridMap[i][j] = 0;
+                spmLocalGridMap_max[i][j] = 0;
+                spmLocalGridMap_min[i][j] = 0;
+            }
+        }
+    }
+
+    /*----------------------load point cloud file---------------------*/
+    //gridMap initialization
+    if(LOAD_POINTCLOUD)
+    {
+        //start timer for point cloud load timing
+        tictac.Tic();
+        printf("Loading globalPointsMap...\n");
+        CSimplePointsMap globalPointsMapTemp;//temp point cloud for generate globalPointsMap
+        globalPointsMapTemp.loadFromPlyFile(pointcloud_file);
+        float max_x, max_y, max_z, min_x, min_y, min_z;
+        globalPointsMapTemp.boundingBox(min_x, max_x, min_y, max_y, min_z, max_z);
+        globalPointsMapTemp.extractPoints(
+                TPoint3D(min_x, min_y, pointsMap_heightMin),
+                TPoint3D(max_x, max_y, pointsMap_heightMax),
+                &globalPointsMap);
+        //print
+
+        printf("globalPointsMap load in %.3f s.\nglobalPointsMap size: %i points\n", tictac.Tac(), (int)globalPointsMap.size());
+        //print memory usage
+        memory_usage_pointcloud = (float)getMemoryUsage()/(1024*1024);
+        ROS_INFO("Memory usage after initialization: %fMb",memory_usage_pointcloud);
+    }
+
+    /*----------------------initialize log file name---------------------*/
+    if(SAVE_RESULTANDLOG){
+        time_t timep;
+        struct tm *p;
+        time(&timep);
+        p=gmtime(&timep);
+
+        char log_file_name[200];
+        sprintf(log_file_name,
+                "/%d-%02d-%02d-%02d-%02d-%02d.txt",
+                (1900+p->tm_year),(1+p->tm_mon),p->tm_mday,p->tm_hour,p->tm_min,p->tm_sec);
+        log_file_path.append(log_file_name);
+        outputFile_result.open(log_file_path,0);
+    }
+    //start timer for main process
+    tictac.Tic();
+
+    ROS_INFO("Grid_localization initialization done.");
 }
