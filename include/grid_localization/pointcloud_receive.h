@@ -114,6 +114,7 @@ public:
     string pointcloud_file;
     string gridmap_path;
     string log_file_path;
+    string config_file_path;
 
     std::string ini_file_path;
     std::string pointcloud_topic_name;
