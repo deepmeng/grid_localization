@@ -286,6 +286,8 @@ public:
                              const sensor_msgs::PointCloud2::ConstPtr& rear);
     bool GridMapUpdate();
 
+    void SavePointsMap();
+
     bool isGlobalGridMapCenterChange(double robot_x, double robot_y, double Center_x, double Center_y);
 
     bool myLoadFromBitmapFile(    

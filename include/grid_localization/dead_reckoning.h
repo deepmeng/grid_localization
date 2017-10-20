@@ -47,6 +47,9 @@ class dead_reckoning
     ros::Subscriber garmin_sub;
     ros::Subscriber n280_sub;
     ros::Subscriber n280Orientation_sub;
+
+    ros::Subscriber initial_pose_sub;
+
     std::string gps_topic_name;
 public:
     std_msgs::Float64MultiArray velocity_data;
@@ -114,6 +117,7 @@ public:
     void xsens_callback(const sensor_msgs::Imu &msg);
     void odo_callback(const can_msgs::SpeedMilSteer &msg  );
     void rtk_callback(const sensor_msgs::NavSatFix &msg );
+    void initPose_callback(const std_msgs::Float64MultiArray& msg);
     // void garmin_callback(const sensor_msgs::NavSatFix &msg );
     //void n280Orientation_callback(const std_msgs::Float64 &msg );
 

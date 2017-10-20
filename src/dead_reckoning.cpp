@@ -8,6 +8,7 @@ dead_reckoning::dead_reckoning()
     imu_sub_ = nh_.subscribe("/imu_torso/xsens/imu",1,&dead_reckoning::xsens_callback,this);   //imu
     pulse_sub = nh_.subscribe("/CanDecode_1/SpeedMilSteer",1,&dead_reckoning::odo_callback,this);  //odometry//// /RecvCAN_1/SpeedMilSteer  /CanDecode_1/SpeedMilSteer
     rtkgps_sub_ = nh_.subscribe("/fix",1,&dead_reckoning::rtk_callback,this);  //GPS
+    initial_pose_sub = nh_.subscribe("/init_pose",1,&dead_reckoning::initPose_callback, this);
 
     //GPS & XY coordinate exchange
     gpsOrigin.latlon[0] = latMean;
@@ -67,6 +68,11 @@ dead_reckoning::dead_reckoning()
     gpsSum_x = 0;
     gpsSum_y = 0;
     n280Orientation = 0;
+
+}
+
+void dead_reckoning::initPose_callback(const std_msgs::Float64MultiArray& msg)
+{
 
 }
 

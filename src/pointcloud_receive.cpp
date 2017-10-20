@@ -1,5 +1,8 @@
-#include "pointcloud_receive.h"
+/*--------------------------------------------------------------------------
+ *
+ --------------------------------------------------------------------------*/
 
+#include "pointcloud_receive.h"
 
 /*---------------------------------------------------------------------------
                     Initialization part
@@ -43,6 +46,7 @@ pointcloud_receive::pointcloud_receive()
     grid_localization_init(); //init part show be called after getting excute_mode
 
 }
+
 
 /*---------------------------------------------------------------------------
                     LiDAR callback, Main process
@@ -414,6 +418,7 @@ void pointcloud_receive::pointcloud_callback(
         pose_vlp16.data.push_back(poseEst2D.y()+output_pose_shift_y);
         pose_vlp16.data.push_back(poseEst2D.phi());
         pose_vlp16.data.push_back(info.goodness);       //matching goodness
+        pose_vlp16.data.push_back(info.quality);
 
         pose_pub.publish(pose_vlp16);
     }
@@ -625,7 +630,7 @@ void pointcloud_receive::pointcloud_callback(
         //show info on window 3D
         char win3DMsgState[200];
         sprintf(win3DMsgState,
-                "X Y Heading: %.2f %.2f %.2f\nLat Lon: %.6f %.6f\n\nCov: %.6f %.6f %.6f\nMatching gn: %.3f:\nMatching time:%.1f ms\n\nSpeed: %.2f m/s\nMain proc time: %.1f ms",
+                "X Y Heading: %.2f %.2f %.2f\nLat Lon: %.6f %.6f\n\nCov: %.6f %.6f %.6f\nCorrespondences ratio: %.3f:\nMatching time:%.1f ms\n\nSpeed: %.2f m/s\nMain proc time: %.1f ms",
                 poseEst2D.x()+output_pose_shift_x, poseEst2D.y()+output_pose_shift_x, poseEst2D.phi(),
                 outLat, outLon,
                 (float)covariance_matching(0,0), (float)covariance_matching(1,1), (float)covariance_matching(2,2),
@@ -676,6 +681,7 @@ bool pointcloud_receive::isGlobalGridMapCenterChange(double robot_x, double robo
     }
 }
 
+
 /*---------------------------------------------------------------------------
                Load image, change to COccupancyGridmap2D
 ----------------------------------------------------------------------------*/
@@ -723,6 +729,7 @@ bool pointcloud_receive::isNan(float fN)
 {
     return !(fN==fN);
 }
+
 
 /*---------------------------------------------------------------------------
                            Load configuration

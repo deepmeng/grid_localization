@@ -13,7 +13,7 @@ int main(int argc, char** argv)
     ros::waitForShutdown();
 
     if(gl.SAVE_POINTCLOUD){
-        gl.globalPointsMap.saveToPlyFile("/home/guolindong/catkin_ws/src/grid_localization/pointcloud/cyberfly_g200_oct.ply",true);
+        gl.globalPointsMap.saveToPlyFile("/home/guolindong/catkin_ws/src/grid_localization/pointcloud/new.ply",true);
         ROS_INFO("Point cloud PLY file saved.");
         gl.globalPointsMap.clear();
     }
