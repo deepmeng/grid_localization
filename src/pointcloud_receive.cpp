@@ -943,7 +943,11 @@ void pointcloud_receive::grid_localization_init()
         printf("Loading globalPointsMap...\n");
         //globalPointsMap.loadFromPlyFile(NAME_MAPFILE_PLY);//globalPointsMap_02.ply
         CSimplePointsMap globalPointsMapTemp;//temp point cloud for generate globalPointsMap
-        globalPointsMapTemp.loadFromPlyFile(pointcloud_file);
+        if(!globalPointsMapTemp.loadFromPlyFile(pointcloud_file))
+        {
+            ROS_INFO("pointcloud_file not found, please check .launch");
+            return;
+        }
         float max_x, max_y, max_z, min_x, min_y, min_z;
         globalPointsMapTemp.boundingBox(min_x, max_x, min_y, max_y, min_z, max_z);
         globalPointsMapTemp.extractPoints(
