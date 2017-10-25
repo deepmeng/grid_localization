@@ -69,7 +69,9 @@ dead_reckoning::dead_reckoning()
     gpsSum_y = 0;
     n280Orientation = 0;
 
-    imu_orien_yaw=0;
+    imu_orientation_yaw = 0;
+    imu_orientation_pitch = 0;
+    imu_orientation_roll = 0;
     ekf_init_flag = true;
 }
 
@@ -100,7 +102,7 @@ void dead_reckoning::rtk_callback(const sensor_msgs::NavSatFix &msg)
         Lu_Matrix P0(3,3);
         X0(0,0)=poseGps2D.x();
         X0(1,0)=poseGps2D.y();
-        X0(2,0)=imu_orien_yaw;
+        X0(2,0)=imu_orientation_yaw;
         if(X0(2,0)<0) X0(2,0) += 2*PI;
         P0(0,0)=1,P0(1,1)=1,P0(2,2)=0.1;
         GPSINS_EKF.init(3,X0,P0);
@@ -152,8 +154,10 @@ void dead_reckoning::xsens_callback(const sensor_msgs::Imu &msg)
         //ROS_INFO("%.10f",time_present);
     }
 
-    imu_orien_yaw = atan2(2*(imu_data.orientation.w * imu_data.orientation.y + imu_data.orientation.z * imu_data.orientation.x),
+    imu_orientation_yaw = atan2(2*(imu_data.orientation.w * imu_data.orientation.y + imu_data.orientation.z * imu_data.orientation.x),
                           1-2*(imu_data.orientation.x * imu_data.orientation.x + imu_data.orientation.y * imu_data.orientation.y));
+    imu_orientation_pitch = 0;
+    imu_orientation_roll = 0;
     //ROS_INFO("yaw %.3f",imu_orien_yaw);
 
     angularVelocity = imu_data.angular_velocity.z - gyro_z_offset;
@@ -284,6 +288,7 @@ void dead_reckoning::xy2latlon(double x,double y, double &lat, double &lon)
     lon = gpsOut.latlon[1];
 }
 
+//
 void dead_reckoning::clear_sum()
 {
     mileage_incr = 0;

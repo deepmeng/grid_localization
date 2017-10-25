@@ -1,6 +1,5 @@
 #include "pointcloud_receive.h"
 
-
 /*---------------------------------------------------------------------------
                     Initialization part
 ----------------------------------------------------------------------------*/
@@ -9,15 +8,6 @@ pointcloud_receive::pointcloud_receive()
     //node handle
     ros::NodeHandle nh;
     ros::NodeHandle pnh("~");
-
-    //subscribe two pointcloud2, use message_filters
-    sub_velodyne_front = new message_filters::Subscriber<sensor_msgs::PointCloud2> (nh, "/front/velodyne_points", 2);
-    sub_velodyne_rear = new message_filters::Subscriber<sensor_msgs::PointCloud2> (nh, "/rear/velodyne_points", 2);
-    sync = new Synchronizer<MySyncPolicy> (MySyncPolicy(10), *sub_velodyne_front, *sub_velodyne_rear);
-    sync->registerCallback(boost::bind(&pointcloud_receive::pointcloud_callback, this, _1, _2));
-
-    //publishe
-    pose_pub = nh.advertise<std_msgs::Float64MultiArray>("pose_vlp16",2);
 
     //parameter
     pnh.param<int>("excute_mode", excute_mode, 2);
@@ -35,6 +25,14 @@ pointcloud_receive::pointcloud_receive()
     pnh.getParam("gridmap_path",gridmap_path);
     pnh.getParam("log_file_path",log_file_path);
     pnh.getParam("config_file_path", config_file_path);
+
+    //subscribe two pointcloud2, use message_filters
+    sub_velodyne_front = new message_filters::Subscriber<sensor_msgs::PointCloud2> (nh, "/front/velodyne_points", 2);
+    sub_velodyne_rear = new message_filters::Subscriber<sensor_msgs::PointCloud2> (nh, "/rear/velodyne_points", 2);
+    sync = new Synchronizer<MySyncPolicy> (MySyncPolicy(10), *sub_velodyne_front, *sub_velodyne_rear);
+    sync->registerCallback(boost::bind(&pointcloud_receive::pointcloud_callback, this, _1, _2));
+    //publishe
+    pose_pub = nh.advertise<std_msgs::Float64MultiArray>("pose_vlp16",2);
 
     //grid_localization configuration initialization
     grid_localization_init();
@@ -98,23 +96,21 @@ void pointcloud_receive::pointcloud_callback(
         if (DR.firstGpsUpdate)
         {
             DR.calculate_pose_inc();    //for ordinary usage, like localization
-            DR.get_poseGps_ekf();//用这个结果与glResult进行对比，假设poseGps_ekf为groundTruth
-            //DR.get_pose_ekf();
+            DR.get_poseGps_ekf();   //gps ekf (with odo and imu)
+            //pose increase
             poseIncr2D = CPose2D(DR.robot_pose_inc.x(),DR.robot_pose_inc.y(),DR.robot_pose_inc.phi());
-            //poseIncr3D = CPose3D(DR.robot_pose_inc.x(),DR.robot_pose_inc.y(),0,DR.robot_pose_inc.phi(),0,0);
-
+            //dead reckoning
             poseDR2D += poseIncr2D;
-            //poseDR3D += poseIncr3D;
 
-            //if need relocate using ICP according to the current GPS(or if ICP failed) 
-            CPoint2D pointEst2D = CPoint2D(poseEst2D.x(),poseEst2D.y());
+            //if need relocate using ICP according to the current GPS(if or if ICP failed)
             poseEkf2D = CPose2D(DR.robot_poseGps_ekf.x(),DR.robot_poseGps_ekf.y(),DR.robot_poseGps_ekf.phi());
             if (isNan(poseEkf2D.x()) || isNan(poseEkf2D.y() ))
             {
                 X0_init(0,0) = poseEkf2D_last.x();
                 X0_init(1,0) = poseEkf2D_last.y();
                 X0_init(2,0) = poseEkf2D_last.phi();
-                DR.GPSINS_EKF.init(3,X0_init,P0_init);//Nan
+                DR.GPSINS_EKF.init(3,X0_init,P0_init);
+                ROS_INFO("*** poseEkf2D NaN ***");
             }
             if (isNan(poseEst2D.x()) || isNan(poseEst2D.y() ))
             {
@@ -122,6 +118,7 @@ void pointcloud_receive::pointcloud_callback(
                 X0_init(1,0) = poseEkf2D_last.y();
                 X0_init(2,0) = poseEkf2D_last.phi();
                 DR.glResult_EKF.init(3,X0_init,P0_init);//NaN
+                ROS_INFO("*** poseEst2D NaN ***");
             } 
 
             //if( poseEstDist2poseEKF > poseErrorMax)
@@ -132,11 +129,9 @@ void pointcloud_receive::pointcloud_callback(
                 initialGuessStableCounter = 0;
             }
 
-            //if (LOAD_POINTCLOUD)
-            {
-                poseEst2D_last = poseEst2D;
-                poseEkf2D_last = poseEkf2D;
-            }
+            //poseEst2D_last = poseEst2D;
+            poseEkf2D_last = poseEkf2D;
+
             if(SAVE_POINTCLOUD) poseEst2D_last = poseEkf2D;
         }
     }
@@ -149,6 +144,7 @@ void pointcloud_receive::pointcloud_callback(
             X0_init(1,0) = poseEkf2D_last.y();
             X0_init(2,0) = poseEkf2D_last.phi();
             DR.GPSINS_EKF.init(3,X0_init,P0_init);//NaN
+            ROS_INFO("*** poseEkf2D NaN ***");
         }
         if (isNan(poseEst2D.x()) || isNan(poseEst2D.y() ))
         {
@@ -156,15 +152,13 @@ void pointcloud_receive::pointcloud_callback(
             X0_init(1,0) = poseEkf2D_last.y();
             X0_init(2,0) = poseEkf2D_last.phi();
             DR.glResult_EKF.init(3,X0_init,P0_init);//NaN
+            ROS_INFO("*** poseEst2D NaN ***");
         }
         poseEst2D = poseEkf2D;
-        CPoint2D pointEst2D = CPoint2D(poseEst2D.x(),poseEst2D.y());    
 
         //for matching using history pointclouds
         poseIncr2D = CPose2D(DR.robot_pose_inc.x(), DR.robot_pose_inc.y(), DR.robot_pose_inc.phi());
-        //poseIncr3D = CPose3D(DR.robot_pose_inc.x(), DR.robot_pose_inc.y(), 0, DR.robot_pose_inc.phi(), 0, 0);
         poseDR2D += poseIncr2D;
-        //poseDR3D += poseIncr3D;
 
         initialGuessStableCounter++;//follow gps for a while
         if(initialGuessStableCounter > gpsInitialStableCounter)
@@ -174,9 +168,9 @@ void pointcloud_receive::pointcloud_callback(
         }
         else icpStarted = false;//waiting for a stable gps used for ICP initialguess
 
-        poseEst2D_last = poseEst2D;
+        //poseEst2D_last = poseEst2D;
         poseEkf2D_last = poseEkf2D;  
-    }// end of else yaw_angle_veolcity_sum
+    }
 
     /*----------------------Insert LiDAR data into global points map----------------------*/
     if(!USE_GLOBALPOINTCLOUDFORMATCHING)
@@ -371,6 +365,7 @@ void pointcloud_receive::pointcloud_callback(
                 pdfG
             );				// Starting estimate
             icp_tic_time = icp_tic.Tac()*1000;   //timer end, unit s->ms
+            poseEst2D_last = poseEst2D;
             poseEst2D = pdf->getMeanVal();
             hasCurRobotPoseEst = true;
         }
@@ -842,9 +837,8 @@ void pointcloud_receive::grid_localization_init()
     X0_init(2,0)=0;
     P0_init(0,0)=1;
     P0_init(1,1)=1;
-    P0_init(2,2)=0.1;
+    P0_init(2,2)=0.0;
 
-    //
     initialGuessStableCounter = 0;
     initialGuess = CPose2D(0,0,0);
     hasCurRobotPoseEst = false;
