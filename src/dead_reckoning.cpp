@@ -47,14 +47,14 @@ dead_reckoning::dead_reckoning()
     yaw_velocity_last = 0;
     pulse_sum =0;
     mileage_sum = 0;
-    robot_pose_gps = CPose2D(-21729,66191,-0.9);
+    robot_pose_gps = CPose2D(0,0,0);
     robot_pose_inc = CPose2D(0,0,0); //CPose2D(-21729,66191,-0.9);
     poseIncr2D = CPose2D(0, 0, 0);
     tictacDR.Tic();
     ticPre = tictacDR.Tac();
     timePrevious = 0;
     ekf_result_ready = false;
-    firstMovement = false;
+    //firstMovement = true;
     firstGpsUpdate = false;
 
     firstTime = true;
@@ -69,6 +69,8 @@ dead_reckoning::dead_reckoning()
     gpsSum_y = 0;
     n280Orientation = 0;
 
+    imu_orien_yaw=0;
+    ekf_init_flag = true;
 }
 
 void dead_reckoning::initPose_callback(const std_msgs::Float64MultiArray& msg)
@@ -90,50 +92,46 @@ void dead_reckoning::rtk_callback(const sensor_msgs::NavSatFix &msg)
                      gpsPos.GPS_OffsetY);
 
     poseGps2D = CPose2D(gpsPos.coordinate[0], gpsPos.coordinate[1],0);
-    poseGps3D = CPose3D(gpsPos.coordinate[0], gpsPos.coordinate[1], gps_data.altitude, 0,0,0);
-    //ROS_INFO("%.2f, %.10f",poseGps2D.x(), poseGps2D.y());
 
-    //gps based ekf initiallizaiton
-    //ekf初始化阶段，累加gps数据，用于之后平均
-    if(initGpsCounter<10){
-        gpsSum_x += poseGps2D.x();
-        gpsSum_y += poseGps2D.y();
-        initGpsCounter++;
-    }
-    //累加一定时间之后，
-    else if (initGpsCounter<20){
-        double dx = poseGps2D.x() - gpsSum_x/initGpsCounter;
-        double dy = poseGps2D.y() - gpsSum_y/initGpsCounter;
+    if(ekf_init_flag){
+        ekf_init_flag = false;
+
         Lu_Matrix X0(3,1);
         Lu_Matrix P0(3,3);
-        X0(0,0)=rtkGps_x;
-        X0(1,0)=rtkGps_y;
-        X0(2,0)=atan2(dy,dx);
+        X0(0,0)=poseGps2D.x();
+        X0(1,0)=poseGps2D.y();
+        X0(2,0)=imu_orien_yaw;
         if(X0(2,0)<0) X0(2,0) += 2*PI;
         P0(0,0)=1,P0(1,1)=1,P0(2,2)=0.1;
         GPSINS_EKF.init(3,X0,P0);
         glResult_EKF.init(3,X0,P0);
-        initGpsCounter++;
     }
-    else if(firstMovement){
-        
-        if(gps_data.position_covariance[0] > 0.00001) 
+    else {
+        if(true)
+//        {
+//            GPSOBV_RO(0,0) = 0.001;
+//            GPSOBV_RO(1,1) = 0.001;
+//            GPSOBV_RO*=GPSOBV_RO;
+//            if (pulse_sum>0.001) GPSINS_EKF.Obv_GPS_update(poseGps2D.x(),poseGps2D.y(),GPSOBV_RO);
+//            if (!firstGpsUpdate) firstGpsUpdate = true;
+//        }
+        if(gps_data.position_covariance[0] > 0.00001)
         {
             if(gps_data.position_covariance[0]<1.4)
             {
                 GPSOBV_RO(0,0) = gps_data.position_covariance[0] * 0.045;//0.05    //0.02//按照gps实际效果设定
                 GPSOBV_RO(1,1) = gps_data.position_covariance[0] * 0.045;//0.05    //0.02//按照gps实际效果设定
             }
-            else 
+            else
             {
-                GPSOBV_RO(0,0) = gps_data.position_covariance[0] * 5;//0.05    //0.02//按照gps实际效果设定
-                GPSOBV_RO(1,1) = gps_data.position_covariance[0] * 5;//0.05    //0.02//按照gps实际效果设定
+                GPSOBV_RO(0,0) = gps_data.position_covariance[0];//0.05    //0.02//按照gps实际效果设定
+                GPSOBV_RO(1,1) = gps_data.position_covariance[0];//0.05    //0.02//按照gps实际效果设定
             }
 
             GPSOBV_RO*=GPSOBV_RO;
-            rtkGps_x = poseGps2D.x();
-            rtkGps_y = poseGps2D.y();
-            if (pulse_sum>0.001) GPSINS_EKF.Obv_GPS_update(rtkGps_x,rtkGps_y,GPSOBV_RO);
+            //rtkGps_x = poseGps2D.x();
+            //rtkGps_y = poseGps2D.y();
+            if (pulse_sum>0.001) GPSINS_EKF.Obv_GPS_update(poseGps2D.x(),poseGps2D.y(),GPSOBV_RO);
             if (!firstGpsUpdate) firstGpsUpdate = true;
         }
     }
@@ -153,6 +151,11 @@ void dead_reckoning::xsens_callback(const sensor_msgs::Imu &msg)
         time_previous = time_present;
         //ROS_INFO("%.10f",time_present);
     }
+
+    imu_orien_yaw = atan2(2*(imu_data.orientation.w * imu_data.orientation.y + imu_data.orientation.z * imu_data.orientation.x),
+                          1-2*(imu_data.orientation.x * imu_data.orientation.x + imu_data.orientation.y * imu_data.orientation.y));
+    //ROS_INFO("yaw %.3f",imu_orien_yaw);
+
     angularVelocity = imu_data.angular_velocity.z - gyro_z_offset;
     yaw_angle_veolcity_sum += ((angularVelocity + yaw_velocity_last) / 2) * time_delta; //积分，单位是弧度/s
     //yaw_angle_veolcity_sum = angularVelocity * time_delta; //积分，单位是弧度/s
@@ -164,16 +167,21 @@ void dead_reckoning::odo_callback(const can_msgs::SpeedMilSteer &msg )
 {
     velocity = msg.Speed;
     mileage_present = msg.Mileage;
-    if(!mileage_last) mileage_last = mileage_present;//防止在刚开始时出现跳跃
-    mileage_incr += (mileage_present - mileage_last);
+    if(!mileage_last)
+        mileage_last = mileage_present;
+    //velocity could be positive/negative
+    if(velocity>=0)
+        mileage_incr += (mileage_present - mileage_last);
+    else
+        mileage_incr -= (mileage_present - mileage_last);
     mileage_last = mileage_present;
 
     pulse_sum = mileage_incr;
-    if(!firstMovement)
-    {
-        //if(pulse_temp!=0) firstMovement = true; //after driving
-        if(pulse_sum>2) firstMovement = true; //after driving 2 meters
-    }
+    //if(!firstMovement)
+    //{
+    //    //if(pulse_temp!=0) firstMovement = true; //after driving
+    //    if(pulse_sum>2) firstMovement = true; //after driving 2 meters
+    //}
     //ROS_INFO("%i\t%i",pulse_data.data[0],pulse_data.data[1]);
 }
 
@@ -245,10 +253,10 @@ void dead_reckoning::get_poseGps_ekf()
     speed = pulse_sum/time_delta;
     speed_time = time_present;
 
+    //if(firstGpsUpdate){
     if(firstGpsUpdate && pulse_sum>0.001){
         GPSINS_EKF.State_Predict(speed,angularVelocity,speed_time,speedCov,XSENS_Diff, pulse_sum, yaw_angle_veolcity_sum);
         //在ICP开始后才对结果进行滤波
-        //glResult_EKF.State_Predict(speed,angularVelocity,speed_time,speedCov,XSENS_Diff, pulse_sum, yaw_angle_veolcity_sum);
         if(!notDoingIcpYet)
             glResult_EKF.State_Predict(speed,angularVelocity,speed_time,speedCov,XSENS_Diff, pulse_sum, yaw_angle_veolcity_sum);
     }

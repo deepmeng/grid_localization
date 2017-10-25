@@ -200,6 +200,7 @@ public:
     bool icpStarted;//icp是否开始
     bool isMatching;
     int initialGuessStableCounter;
+    bool publish_pose_vlp16;
 
     CTicTac tictac, mainLoop;
     CMatrixDouble33 covariance_matching;
