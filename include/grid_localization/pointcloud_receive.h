@@ -111,17 +111,17 @@ class pointcloud_receive
 public:
     //ros param
     int excute_mode;
-    string pointcloud_file;
-    string gridmap_path;
-    string log_file_path;
-    string config_file_path;
+    std::string pointcloud_file;
+    std::string gridmap_path;
+    std::string log_file_path;
+    std::string config_file_path;
 
-    std::string ini_file_path;
     std::string pointcloud_topic_name;
     std::string load_ply_file_path;
     std::string save_ply_file_path;
     std::string grid_map_path;
     std::string log_path;
+
     time_t nowtime;
 
     int step;
