@@ -101,7 +101,7 @@ public:
     bool notDoingIcpYet;
 
     double yaw, pitch, roll, yawVel;
-    double imu_orien_yaw, imu_orien_pitch, imu_orien_roll;
+    double imu_orientation_yaw, imu_orientation_pitch, imu_orientation_roll;
     bool ekf_init_flag;
     float pulesSum;
 

@@ -60,23 +60,23 @@
 #include <mrpt/utils/CImage.h>
 #include <mrpt/system/memory.h>//
 
-#include <pcl_conversions/pcl_conversions.h>
-#include <pcl/point_cloud.h>
-#include <pcl/point_types.h>
-#include <pcl_ros/point_cloud.h>
-
-#include <pcl/common/common_headers.h>
-#include <pcl/console/parse.h>
-#include <pcl/point_types.h>
-#include <pcl/io/io.h>
-#include <pcl/filters/filter.h>
-#include <pcl/sample_consensus/method_types.h>
-#include <pcl/segmentation/sac_segmentation.h>
-#include <pcl/segmentation/extract_clusters.h>
-#include <boost/thread/thread.hpp>
-#include <pcl/ModelCoefficients.h>
-#include <pcl/features/normal_3d.h>
-#include <pcl/common/transforms.h>
+//#include <pcl_conversions/pcl_conversions.h>
+//#include <pcl/point_cloud.h>
+//#include <pcl/point_types.h>
+//#include <pcl_ros/point_cloud.h>
+//
+//#include <pcl/common/common_headers.h>
+//#include <pcl/console/parse.h>
+//#include <pcl/point_types.h>
+//#include <pcl/io/io.h>
+//#include <pcl/filters/filter.h>
+//#include <pcl/sample_consensus/method_types.h>
+//#include <pcl/segmentation/sac_segmentation.h>
+//#include <pcl/segmentation/extract_clusters.h>
+//#include <boost/thread/thread.hpp>
+//#include <pcl/ModelCoefficients.h>
+//#include <pcl/features/normal_3d.h>
+//#include <pcl/common/transforms.h>
 
 #include "ctime"
 #include "time.h"
@@ -270,15 +270,15 @@ public:
 
     //CObservationVelodyneScanPtr vlpScan = CObservationVelodyneScan::Create();
 
-    //文件输出
+    //output file
     CFileOutputStream outputFile_raw;
     CFileOutputStream outputFile_result;
 
-    //内存占用
+    //memory usage
     float memory_usage_pointcloud;
 
 public:
-    dead_reckoning  DR;     //航位推算、ekf融合对象
+    dead_reckoning  DR;     //dead reckoning, ekf fusion
     pointcloud_receive();
     ~pointcloud_receive(){}
 

@@ -51,7 +51,7 @@ void pointToGeo::gps2meter(double Ellipse_L0, double OriginX, double OriginY, do
 	double Ellipse_m = cos(Ellipse_lat)*Ellipse_lon;
 
 	double Ellipse_X = Ellipse_C0*(Ellipse_lat + Ellipse_C1*sin(2 * Ellipse_lat) + Ellipse_C2*sin(4 * Ellipse_lat) + Ellipse_C3*sin(6 * Ellipse_lat) + Ellipse_C4*sin(8 * Ellipse_lat));
-	//=================================solution==================================
+	//--------------------------solution----------------------------------
 
 	double tempy = Ellipse_X + 0.5*Ellipse_N*Ellipse_t*pow(Ellipse_m, 2);
 	tempy += 0.041666666666666666666666666667*Ellipse_N*Ellipse_t*(5 - pow(Ellipse_t, 2) + 9 * pow(Ellipse_g, 2) + 4 * pow(Ellipse_g, 4))*pow(Ellipse_m, 4);

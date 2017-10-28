@@ -938,7 +938,7 @@ void pointcloud_receive::grid_localization_init()
     //gridMap initialization
     if(LOAD_POINTCLOUD){
         //load point cloud from ply file
-        CTicTac timer_temp;
+        CTicTac timer_temdp;
         timer_temp.Tic();
         printf("Loading globalPointsMap...\n");
         //globalPointsMap.loadFromPlyFile(NAME_MAPFILE_PLY);//globalPointsMap_02.ply
