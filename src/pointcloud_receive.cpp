@@ -674,7 +674,7 @@ bool pointcloud_receive::isGlobalGridMapCenterChange(double robot_x, double robo
 }
 
 /*---------------------------------------------------------------------------
-               Load image, change to COccupancyGridmap2D
+               Load map (image), change to COccupancyGridmap2D
 ----------------------------------------------------------------------------*/
 bool  pointcloud_receive::myLoadFromBitmapFile(
     const std::string   &file,
@@ -894,7 +894,7 @@ void pointcloud_receive::grid_localization_init()
     curGridMapCenter = CPoint2D(0,0);
     dFromPoseToCenter = 20;
 
-    /*-------------gridmap malloc init---------------*/
+    /*-------------gridmap memory alloc init---------------*/
     spmGridMap_m = gridMap_halfSize*2 / gridMap_resolution;
     spmGridMap_n = gridMap_halfSize*2 / gridMap_resolution;
     spmLocalGridMap = (int**)malloc(sizeof(int*)* spmGridMap_m); //¿ª±ÙÐÐ
