@@ -941,7 +941,6 @@ void pointcloud_receive::grid_localization_init()
         CTicTac timer_temp;
         timer_temp.Tic();
         printf("Loading globalPointsMap...\n");
-        //globalPointsMap.loadFromPlyFile(NAME_MAPFILE_PLY);//globalPointsMap_02.ply
         CSimplePointsMap globalPointsMapTemp;//temp point cloud for generate globalPointsMap
         if(!globalPointsMapTemp.loadFromPlyFile(pointcloud_file))
         {
