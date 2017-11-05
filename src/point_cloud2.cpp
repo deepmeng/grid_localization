@@ -124,11 +124,11 @@ namespace mrpt_bridge
         get_float_from_field(y_field, msg_data, y);
         get_float_from_field(z_field, msg_data, z);
         //if(z >pointsMap_heightMin && z<pointsMap_heightMax) //改过
-        if(x>x_Min && z<z_Max && y<y_Max && y>y_Min)
+        //if(x>x_Min && z<z_Max && y<y_Max && y>y_Min)
         {
             obj.insertPoint(x, y, z);
         }
-        else continue;
+        //else continue;
       }
     }
     return true;

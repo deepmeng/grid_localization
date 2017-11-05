@@ -17,10 +17,11 @@ LOAD_POINTCLOUD = 1//1 	// ((SAVE_POINTCLOUD && LOAD_POINTCLOUD)  ==0)
 NAME_MAPFILE_PLY = /home/guolindong/catkin_ws/src/grid_localization/point_cloud_file/globalPointsMap_zizhu.ply  //载入地图的文件名
 NAME_MAPFILE_IMG = 
 USE_GPSFORMAPPING = 1//0  //用GPS数据生成栅格地图，配合Load_pointcloud和generate_gridmapFile使用
-USE_CURPOINTFORMATCHING = 1	//(use only current laser points for map matching)
+USE_GLOBALPOINTCLOUDFORMATCHING = 0	//(use only current laser points for map matching)
 GENERATE_GRIDMAP = 1	//在没有找到地图文件的情况下，若该量为1，则生成局部栅格图（利用载入的全局点云）
 GENERATE_GRIDMAPFILE = 1 //在生成局部参考栅格图的基础上，将局部参考栅格图存为文件
-CAMERA_FOLLOW_ROBOT = 0	
+CAMERA_FOLLOW_ROBOT = 1
+OUTPUT_FILTERED_POSE = 1
 
 whichGpsForInitial = 0 //0:rtk 1:侧向GPS 2:Garmin
 timeForGps = 10 //单位秒，建立点云地图时为rtkGPS收敛预留的时间,通常20s
@@ -28,22 +29,22 @@ gpsInitialStableCounter = 10 //单位秒 进行定位时，在程序运行该值
 
 minDisBetweenLaserPoints = 0.05
 pointsMap_heightMin = 0.1//-0.3//-0.5
-pointsMap_heightMax = 1.0
+pointsMap_heightMax = 20//6(展览中心)//20(智能车大楼)
 pointsMap_clipOutOfRange = 30
 pointsMap_clipCenterDistance = 10  
 
-gridMap_resolution = 0.1
+gridMap_resolution = 0.05
 gridMap_halfSize = 40
 gridMap_enhanceStep = 0.005//0.01//0.02（校园）
-gridMap_pzFactor = 0.5//0.5//10（校园）//0.1
-gridMap_cellPointsThreshold = 20//10(紫竹)//15(校园环境)//
+gridMap_pzFactor = 0.13//0.5//10（校园）//0.1
+gridMap_cellPointsThreshold = 7//10(紫竹)//15(校园环境)//
 
 pose_front_VLP16_x = 3.5
 pose_front_VLP16_y = 0
-pose_front_VLP16_z = 2.1
+pose_front_VLP16_z = 2.0//2.1
 pose_front_VLP16_yaw = -0.0
-pose_front_VLP16_pitch = 0.503598767
-pose_front_VLP16_roll = 0.017453292
+pose_front_VLP16_pitch = 0.463598767     //0.503598767//(0908配置)    //0.463598767//0920配置
+pose_front_VLP16_roll = 0.01//     0.017//（0908配置）   0.01//0920配置
 
 pose_rear_VLP16_x = -0.4
 pose_rear_VLP16_y = -0.07
@@ -51,7 +52,6 @@ pose_rear_VLP16_z = 2.1
 pose_rear_VLP16_yaw = 3.1415926
 pose_rear_VLP16_pitch = 0.27815926
 pose_rear_VLP16_roll = 0.00
-
 
 poseErrorMax = 3//5 //基于ekf(odo+imu+gps)的定位结果与估计位姿的最大距离，超过此距离则重新初始化
 

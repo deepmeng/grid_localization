@@ -129,7 +129,7 @@ void pointcloud_receive::pointcloud_callback(
                 initialGuessStableCounter = 0;
             }
 
-            //poseEst2D_last = poseEst2D;
+            poseEst2D_last = poseEst2D;
             poseEkf2D_last = poseEkf2D;
 
             if(SAVE_POINTCLOUD) poseEst2D_last = poseEkf2D;
@@ -168,7 +168,7 @@ void pointcloud_receive::pointcloud_callback(
         }
         else icpStarted = false;//waiting for a stable gps used for ICP initialguess
 
-        //poseEst2D_last = poseEst2D;
+        poseEst2D_last = poseEst2D;
         poseEkf2D_last = poseEkf2D;  
     }
 
@@ -365,7 +365,7 @@ void pointcloud_receive::pointcloud_callback(
                 pdfG
             );				// Starting estimate
             icp_tic_time = icp_tic.Tac()*1000;   //timer end, unit s->ms
-            poseEst2D_last = poseEst2D;
+            //poseEst2D_last = poseEst2D;
             poseEst2D = pdf->getMeanVal();
             hasCurRobotPoseEst = true;
         }
